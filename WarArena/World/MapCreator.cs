@@ -7,8 +7,6 @@ namespace Core.World
 {
     static class MapCreator
 	{
-
-
 		internal const int MapWidth = 40;
 		internal const int  MapHeight = 21;
 		const int PercentAreWalls = 40;
@@ -21,8 +19,22 @@ namespace Core.World
             map = MakeCaverns(map);
             return map;
         }
-		
-		static Tile[,] MakeCaverns(Tile[,] map)
+
+        public static Tile[,] CreateEmptyMap()
+        {
+            Tile[,] map = new Tile[MapWidth,MapHeight];
+            for (int x = 0; x < MapWidth; x++)
+            {
+                for (int y = 0; y < MapHeight; y++)
+                {
+                    var isEdge = x == 0 || y == 0 || x == MapWidth - 1 || y == MapHeight - 1;
+                    map[x,y] = new Tile(x,y, isEdge);
+                }
+            }
+            return map;
+        }
+
+        static Tile[,] MakeCaverns(Tile[,] map)
 		{
 			for(int row=0; row <= MapHeight-1; row++)
 			{

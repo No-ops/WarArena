@@ -8,10 +8,8 @@ namespace Core.World
     [Serializable]
     class Tile
     { 
-        internal bool IsCaveWall { get; private set; }
-
-
-        internal char ImageCharacter
+        public bool IsCaveWall { get; private set; }
+        public char ImageCharacter
         {
             get
             {
@@ -23,7 +21,7 @@ namespace Core.World
             }
         }
 
-        internal string Color
+        public string Color
         {
             get
             {
@@ -36,12 +34,15 @@ namespace Core.World
         public int X { get; set; }
         public int Y { get; set; }
 
-        internal Tile(int x, int y, bool isCaveWall = false)
+        public Tile(int x, int y, bool isCaveWall = false)
             : base()
         {            
             X = x;
             Y = y;
             IsCaveWall = isCaveWall;
         }
+
+        public int Gold { get; set; }
+        public bool HasGold => Gold > 0;
     }
 }

@@ -54,6 +54,14 @@ namespace WarArena
         public void ChangeTextColor(string color)
         {
             Console.ForegroundColor = (ConsoleColor)Enum.Parse(typeof (ConsoleColor), color);
-        }       
+        }
+
+        public void WriteBlock(string color)
+        {
+            var oldColor = Console.BackgroundColor;
+            Console.BackgroundColor = (ConsoleColor)Enum.Parse(typeof(ConsoleColor), color);
+            Console.Write(" ");
+            Console.BackgroundColor = oldColor;
+        }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Core.Utilities;
 using Core.World;
 
 namespace WarArena
@@ -22,13 +23,22 @@ namespace WarArena
         Thrust
     }
 
+    enum MoveResult
+    {
+        None,
+        Success,
+        Fail,
+        Gold,
+        Player
+    }
+
     class Game
     {
         public Game()
         {
             Handler = new IOHandler();
             Validator = new Validator();
-            GameMap = MapCreator.CreateMap();
+            GameMap = MapCreator.CreateEmptyMap();
         }
         public IOHandler Handler { get; set; }
         public Validator Validator { get; set; }
@@ -43,34 +53,89 @@ namespace WarArena
             do
             {
                 Handler.Clear();
+                Handler.WriteLine($"Player {Player.PlayersCreated + 1}");
                 Handler.Write($"Please enter your name: ");
                 name = Handler.ReadString();
             } while (!Validator.HasMinLength(name, 3));
-            return new Player(name, 100, 10, 10, new Coords(0, 0));
+            return new Player(name, 100, 10, 0, GetRandomFreeCoords());
         }
 
-        void SetUpBoard()
+        public void SetUpGame()
         {
+            Players = new Player[2];
+            Players[0] = CreatePlayer();
+            Players[1] = CreatePlayer();
+        }
+
+        public void Display(Player player)
+        {
+            Handler.Clear();
             PrintBoard();
-            PrintHealthBar(1, Players[0].Health);
-            PrintHealthBar(2, Players[1].Health);
+            foreach (var currentPlayer in Players)
+            {
+                PrintHealthBar(currentPlayer.PlayerId, currentPlayer.Health);
+            }
+            PrintPlayerStats(player);
+        }
+
+        private void PrintPlayerStats(Player player)
+        {
+            Handler.ChangeTextColor("White");
+            Handler.SetCursorPosition(0, GameMap.GetLength(1) + 1);
+            Handler.Write($"{player.Name}'s turn. Gold: {player.Gold}.");
         }
 
         public void PrintBoard()
         {
-            for (int i = 0; i < GameMap.GetLength(1); i++)
+            for (int y = 0; y < GameMap.GetLength(1); y++)
             {
-                for (int j = 0; j < GameMap.GetLength(0); i++)
+                for (int x = 0; x < GameMap.GetLength(0); x++)
                 {
-                    PrintTile(GameMap[j, i]);
+                    PrintTile(GameMap[x, y]);
                 }
             }
+
+            foreach (var player in Players)
+            {
+                PrintPlayer(player);
+            }
+        }
+
+
+        Coords GetRandomFreeCoords()
+        {
+            Coords coords = null;
+            var tileIsFree = false;
+            do
+            {
+                coords = new Coords(
+                    RandomizationFunctions.GetRandomNumber(0, GameMap.GetLength(0) - 1),
+                    RandomizationFunctions.GetRandomNumber(0, GameMap.GetLength(1) - 1)
+                    );
+
+                if (GameMap[coords.X, coords.Y].HasGold || GameMap[coords.X, coords.Y].IsCaveWall)
+                    continue;
+
+                tileIsFree = true;
+                foreach (var player in Players)
+                {
+                    if (player == null)
+                        continue;
+
+                    if (player.Coordinates.X == coords.X && player.Coordinates.Y == coords.Y)
+                    {
+                        tileIsFree = false;
+                        break;
+                    }
+                }
+            } while (!tileIsFree);
+            return coords;
         }
 
         void PrintHealthBar(int playerId, int health)
         {
             Handler.ChangeTextColor("Black");
-            Handler.SetCursorPosition(GameMap.GetLength(0), playerId - 1);
+            Handler.SetCursorPosition(GameMap.GetLength(0), playerId);
 
             for (int i = 0; i < 10; i++)
             {
@@ -86,19 +151,34 @@ namespace WarArena
                 Handler.ChangeTextColor("Blue");
             }
 
-            Handler.SetCursorPosition(GameMap.GetLength(0), playerId - 1);
+            Handler.SetCursorPosition(GameMap.GetLength(0), playerId);
 
             for (int i = 0; i < health / 10; i++)
             {
-                Handler.Write("");
+                Handler.WriteBlock(Player.PlayerColors[playerId]);
             }
         }
 
         void PrintTile(Tile tile)
         {
             Handler.SetCursorPosition(tile.X, tile.Y);
-            Handler.ChangeTextColor(tile.Color);
-            Handler.Write(tile.ImageCharacter);
+            if (tile.HasGold)
+            {
+                Handler.ChangeTextColor("Yellow");
+                Handler.Write('*');
+            }
+            else
+            {
+                Handler.ChangeTextColor(tile.Color);
+                Handler.Write(tile.ImageCharacter);
+            }
+        }
+
+        void PrintPlayer(Player player)
+        {
+            Handler.SetCursorPosition(player.Coordinates);
+            Handler.ChangeTextColor(player.PlayerColor);
+            Handler.Write("@");
         }
 
         void PrintInstructions()
@@ -152,12 +232,6 @@ namespace WarArena
             }
         }
 
-        void PrintPlayer(Player player)
-        {
-            Handler.SetCursorPosition(player.Coordinates);
-            Handler.Write(player.PlayerId.ToString());
-        }
-
         void TakeAction(Player player, ConsoleKey key)
         {
             switch (key)
@@ -189,38 +263,51 @@ namespace WarArena
             return result;
         }
 
-        void MovePlayer(Player player, Direction direction)
+        MoveResult MovePlayer(Player player, Direction direction)
         {
-            PrintTile(GameMap[player.Coordinates.X, player.Coordinates.Y]);
+            var newCoords = new Coords(player.Coordinates.X, player.Coordinates.Y);
             switch (direction)
             {
                 case Direction.North:
-                    if (!GameMap[player.Coordinates.X, player.Coordinates.Y - 1].IsCaveWall)
-                    {
-                        player.Coordinates.Y--;
-                    }
+                    newCoords.Y--;
                     break;
 
                 case Direction.South:
-                    if (!GameMap[player.Coordinates.X, player.Coordinates.Y + 1].IsCaveWall)
-                    {
-                        player.Coordinates.Y++;
-                    }
+                    newCoords.Y++;
                     break;
                 case Direction.East:
-                    if (!GameMap[player.Coordinates.X + 1, player.Coordinates.Y].IsCaveWall)
-                    {
-                        player.Coordinates.X++;
-                    }
+                    newCoords.X++;
                     break;
                 case Direction.West:
-                    if (!GameMap[player.Coordinates.X - 1, player.Coordinates.Y].IsCaveWall)
-                    {
-                        player.Coordinates.X--;
-                    }
+                    newCoords.X--;
                     break;
             }
-            PrintPlayer(player);
+
+            if (GameMap[newCoords.X, newCoords.Y].IsCaveWall)
+                return MoveResult.Fail;
+
+            foreach (var otherPlayer in Players)
+            {
+                if (otherPlayer.Coordinates.X == newCoords.X && otherPlayer.Coordinates.Y == newCoords.Y)
+                {
+                    SimpleCombat(player, otherPlayer);
+                    return MoveResult.Player;
+                }
+            }
+
+            //PrintTile(GameMap[player.Coordinates.X, player.Coordinates.Y]);
+            player.Coordinates = newCoords;
+            //PrintPlayer(player);
+            if (GameMap[newCoords.X, newCoords.Y].HasGold)
+                return MoveResult.Gold;
+            return MoveResult.Success;
+        }
+
+        private void SimpleCombat(Player attacker, Player defender)
+        {
+            defender.Health -= attacker.Attack;
+            if (defender.Health <= 0)
+                defender.IsDead = true;
         }
 
         public void Attack(Player attacker, Player defender)
@@ -290,15 +377,61 @@ namespace WarArena
             }
         }
 
-        //public Player GameLoop()
-        //{
-        //    do
-        //    {
-        //        foreach (Player player in Players)
-        //        {
+        public void GameLoop()
+        {
+            do
+            {
+                foreach (Player player in Players)
+                {
+                    if (player.IsDead)
+                        RespawnPlayer(player);
+                    PlaceGold();
+                    Display(player);
+                    var input = Handler.ReadKey();
+                    MoveResult moveResult = MoveResult.None;
+                    switch (input.Key)
+                    {
+                        case ConsoleKey.UpArrow:
+                            moveResult = MovePlayer(player, Direction.North);
+                            break;
+                        case ConsoleKey.DownArrow:
+                            moveResult = MovePlayer(player, Direction.South);
+                            break;
+                        case ConsoleKey.LeftArrow:
+                            moveResult = MovePlayer(player, Direction.West);
+                            break;
+                        case ConsoleKey.RightArrow:
+                            moveResult = MovePlayer(player, Direction.East);
+                            break;
+                    }
 
-        //        }
-        //    } while (!Players.Any(p => p.IsDead));
-        //}
+                    switch (moveResult)
+                    {
+                        case MoveResult.Gold:
+                            player.Gold += GameMap[player.Coordinates.X, player.Coordinates.Y].Gold;
+                            GameMap[player.Coordinates.X, player.Coordinates.Y].Gold = 0;
+                            break;
+                    }
+                }
+            } while (true);
+        }
+
+        private void PlaceGold()
+        {
+            if (RandomizationFunctions.Chance(30))
+            {
+                var coords = GetRandomFreeCoords();
+                GameMap[coords.X, coords.Y].Gold = RandomizationFunctions.GetRandomNumber(10, 50);
+            }
+        }
+
+        private void RespawnPlayer(Player player)
+        {
+            GameMap[player.Coordinates.X, player.Coordinates.Y].Gold = player.Gold;
+            player.Gold = 0;
+            player.Coordinates = GetRandomFreeCoords();
+            player.Health = 100;
+            player.IsDead = false;
+        }
     }
 }

@@ -13,11 +13,6 @@ namespace WarArena
             return text.Length >= minLength;
         }
 
-        public bool IsNotEmpty(string text)
-        {
-            return !string.IsNullOrEmpty(text);
-        }
-
         public bool IsKeyValid(ConsoleKey key, params ConsoleKey[] validKeys)
         {
             return validKeys.Contains(key);

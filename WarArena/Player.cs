@@ -8,23 +8,29 @@ namespace WarArena
 {
     class Player
     {
+        public static readonly string[] PlayerColors = { "Red", "Blue", "Green" };
+
         static int _playersCreated = 0;
-        public Player(string name, int health, int attack, int defence, Coords startCoordinates)
+        public static int PlayersCreated => _playersCreated;
+        public Player(string name, int health, int attack, int gold, Coords startCoordinates)
         {
             Name = name;
             PlayerId = _playersCreated++;
             Health = health;
+            Attack = attack;
             Coordinates = startCoordinates;
             IsDead = false;
         }
 
         public string Name { get; set; }
+        public int Attack { get; set; }
+        public int Gold { get; set; }
         public int PlayerId { get; set; }
         public int Health { get; set; }
         public bool IsDead { get; set; }
         public Coords Coordinates { get; set; }
         public AttackType AttackType { get; set; }
-
+        public string PlayerColor => PlayerColors[PlayerId];
         public void Move(Direction direction)
         {
             switch (direction)
