@@ -234,18 +234,55 @@ namespace WarArena
 
         void TakeAction(Player player, ConsoleKey key)
         {
+            Player defender;
             switch (key)
             {
                 case ConsoleKey.UpArrow:
+                    defender = FindAdjacentPlayerInGivenDirection(player, Direction.North);
+                    if (defender == null)
+                    {
+                        MovePlayer(player, Direction.North);
+                    }
+                    else
+                    {
+                        Attack(player, defender);
+                    }
                     break;
 
                 case ConsoleKey.DownArrow:
+                    defender = FindAdjacentPlayerInGivenDirection(player, Direction.South);
+                    if (defender == null)
+                    {
+                        MovePlayer(player, Direction.South);
+                    }
+                    else
+                    {
+                        Attack(player, defender);
+                    }
                     break;
 
                 case ConsoleKey.RightArrow:
+                    defender = FindAdjacentPlayerInGivenDirection(player, Direction.East);
+                    if (defender == null)
+                    {
+                        MovePlayer(player, Direction.East);
+                    }
+                    else
+                    {
+                        Attack(player, defender);
+                    }
                     break;
 
                 case ConsoleKey.LeftArrow:
+                    defender = FindAdjacentPlayerInGivenDirection(player, Direction.West);
+                    if (defender == null)
+                    {
+                        MovePlayer(player, Direction.West);
+                    }
+                    else
+                    {
+                        Attack(player, defender);
+                    }
                     break;
             }
         }
