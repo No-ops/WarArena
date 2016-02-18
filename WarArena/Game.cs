@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Core.Utilities;
 using Core.World;
+using WarArena.Models;
+using WarArena.Repositories;
 
 namespace WarArena
 {
@@ -49,15 +51,56 @@ namespace WarArena
 
         public Player CreatePlayer()
         {
-            string name = "";
-            do
+            Player player = null;
+            while (player == null)
             {
-                Handler.Clear();
-                Handler.WriteLine($"Player {Player.PlayersCreated + 1}");
-                Handler.Write($"Please enter your name: ");
-                name = Handler.ReadString();
-            } while (!Validator.HasMinLength(name, 3));
-            return new Player(name, 100, 10, 0, GetRandomFreeCoords());
+
+                string name = "";
+                do
+                {
+                    Handler.Clear();
+                    Handler.WriteLine($"Player {Player.PlayersCreated + 1}");
+                    Handler.Write($"Please enter your name: ");
+                    name = Handler.ReadString();
+                } while (!Validator.HasMinLength(name, 3));
+
+                IPlayersRepository repository = new DbPlayersRepository();
+                var existingPlayer = repository.GetByName(name);
+                if (existingPlayer == null)
+                {
+                    player = new Player(name, 100, 10, 0, GetRandomFreeCoords());
+                    Handler.Write("Enter a password for your character:");
+                    var password = Handler.ReadString();
+                    var model = Initiator.Mapper.Map<PlayerModel>(player);
+                    model.Password = password;
+                    repository.Add(model);
+                }
+                else
+                {
+                    string keepTrying = "y";
+                    bool correctPassword = false;
+                    while (keepTrying.ToLower() == "y" && !correctPassword)
+                    {
+
+                        Handler.WriteLine("This character already exist.");
+                        Handler.Write("Enter ýour password:");
+                        var password = Handler.ReadString();
+                        if (existingPlayer.Password == password)
+                        {
+                            correctPassword = true;
+                            player = new Player(GetRandomFreeCoords());
+                            Initiator.Mapper.Map(existingPlayer, player);
+                        }
+                        else
+                        {
+                            Handler.WriteLine("Wrong password.");
+                            Handler.Write("Try again? (y/n):");
+                            keepTrying = Handler.ReadString();
+                        }
+                    }
+                }
+            }
+            return player;
         }
 
         public void SetUpGame()
