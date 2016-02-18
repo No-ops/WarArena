@@ -74,7 +74,7 @@
     <Compile Include="Coords.cs" />
     <Compile Include="Game.cs" />
     <Compile Include="IOHandler.cs" />
-    <Compile Include="Models\Player.cs" />
+    <Compile Include="Models\PlayerModel.cs" />
     <Compile Include="Models\WarArenaContext.cs" />
     <Compile Include="Player.cs" />
     <Compile Include="Program.cs" />

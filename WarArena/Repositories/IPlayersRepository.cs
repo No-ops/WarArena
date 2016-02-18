@@ -9,5 +9,6 @@ namespace WarArena.Repositories
     interface IPlayersRepository
     {
         Player GetByName(string name);
+        void Add(Player player);
     }
 }
