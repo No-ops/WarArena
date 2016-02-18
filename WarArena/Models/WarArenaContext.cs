@@ -9,5 +9,6 @@ namespace WarArena.Models
 {
     class WarArenaContext : DbContext
     {
+        public DbSet<PlayerModel> Players { get; set; }
     }
 }
