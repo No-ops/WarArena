@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace WarArena.Models
 {
-    public class PlayerModel
+    public class Player
     {
         public int Id { get; set; }
         public int PlayerId { get; set; }

@@ -74,11 +74,13 @@
     <Compile Include="Coords.cs" />
     <Compile Include="Game.cs" />
     <Compile Include="IOHandler.cs" />
-    <Compile Include="Models\PlayerModel.cs" />
+    <Compile Include="Models\Player.cs" />
     <Compile Include="Models\WarArenaContext.cs" />
     <Compile Include="Player.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Repositories\DbPlayersRepository.cs" />
+    <Compile Include="Repositories\IPlayersRepository.cs" />
     <Compile Include="Utilities\RandomizationFunctions.cs" />
     <Compile Include="Validator.cs" />
     <Compile Include="World\MapCreator.cs" />
