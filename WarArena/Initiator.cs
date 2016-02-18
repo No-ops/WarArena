@@ -12,6 +12,7 @@ namespace WarArena
     static class Initiator
     {
         public static MapperConfiguration configuration;
+        public static IMapper Mapper { get; set; }
 
         public static void AutoMapperConfig()
         {
@@ -20,7 +21,7 @@ namespace WarArena
                 config.CreateMap<Player, PlayerModel>();
                 config.CreateMap<PlayerModel, Player>();
             });
-            
+            Mapper = configuration.CreateMapper();
         }
     }
 }
