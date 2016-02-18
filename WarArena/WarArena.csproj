@@ -73,10 +73,9 @@
   <ItemGroup>
     <Compile Include="Coords.cs" />
     <Compile Include="Game.cs" />
-    <Compile Include="Initiator.cs" />
     <Compile Include="IOHandler.cs" />
-    <Compile Include="Models\PlayerModel.cs" />
     <Compile Include="Models\WarArenaContext.cs" />
+    <Compile Include="Monster.cs" />
     <Compile Include="Player.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -88,7 +87,7 @@
     <Compile Include="World\Tile.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
+    <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
