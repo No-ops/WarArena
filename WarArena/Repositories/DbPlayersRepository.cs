@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Entity;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,6 +20,12 @@ namespace WarArena.Repositories
         public void Add(PlayerModel player)
         {
             context.Players.Add(player);
+            context.SaveChanges();
+        }
+
+        public void Update(PlayerModel player)
+        {
+            context.Entry(player).State = EntityState.Modified;
             context.SaveChanges();
         }
     }
