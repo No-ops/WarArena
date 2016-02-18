@@ -19,7 +19,7 @@ namespace WarArena.Repositories
         public void Add(PlayerModel player)
         {
             context.Players.Add(player);
-
+            context.SaveChanges();
         }
     }
 }
