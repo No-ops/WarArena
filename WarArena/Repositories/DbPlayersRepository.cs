@@ -18,7 +18,8 @@ namespace WarArena.Repositories
 
         public void Add(PlayerModel player)
         {
-            throw new NotImplementedException();
+            context.Players.Add(player);
+
         }
     }
 }

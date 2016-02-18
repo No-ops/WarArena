@@ -9,7 +9,6 @@ namespace WarArena.Models
     public class PlayerModel
     {
         public int Id { get; set; }
-        public int PlayerId { get; set; }
         public string Name { get; set; }
         public string Password { get; set; }
         public int Attack { get; set; }
