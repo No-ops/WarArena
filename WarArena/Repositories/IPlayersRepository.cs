@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WarArena.Models;
 
 namespace WarArena.Repositories
 {
     interface IPlayersRepository
     {
-        Player GetByName(string name);
-        void Add(Player player);
+        PlayerModel GetByName(string name);
+        void Add(PlayerModel player);
     }
 }

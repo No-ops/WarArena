@@ -11,9 +11,14 @@ namespace WarArena.Repositories
     {
         WarArenaContext context = new WarArenaContext();
 
-        public Player GetByName(string name)
+        public PlayerModel GetByName(string name)
         {
             return context.Players.SingleOrDefault(p => p.Name == name);
+        }
+
+        public void Add(PlayerModel player)
+        {
+            throw new NotImplementedException();
         }
     }
 }
