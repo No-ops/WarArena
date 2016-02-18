@@ -12,6 +12,12 @@ namespace WarArena
 
         static int _playersCreated = 0;
         public static int PlayersCreated => _playersCreated;
+
+        public Player(Coords startCoordinates)
+        {
+            PlayerId = _playersCreated++;
+            Coordinates = startCoordinates;
+        }
         public Player(string name, int health, int attack, int gold, Coords startCoordinates)
         {
             Name = name;
