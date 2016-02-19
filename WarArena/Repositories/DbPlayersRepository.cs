@@ -25,7 +25,10 @@ namespace WarArena.Repositories
 
         public void Update(PlayerModel player)
         {
-            context.Entry(player).State = EntityState.Modified;
+            context.Players.Attach(player);
+            var entry = context.Entry(player);
+            entry.Property(p => p.Gold).IsModified = true;
+            entry.Property(p => p.Health).IsModified = true;
             context.SaveChanges();
         }
     }

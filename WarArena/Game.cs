@@ -74,7 +74,6 @@ namespace WarArena
                     var model = Initiator.Mapper.Map<PlayerModel>(player);
                     model.Password = password;
                     repository.Add(model);
-                    player.Id = model.Id;
                 }
                 else
                 {

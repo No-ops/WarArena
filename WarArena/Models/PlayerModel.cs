@@ -10,12 +10,10 @@ namespace WarArena.Models
     [Table("Players")]
     public class PlayerModel
     {
-        public int Id { get; set; }
         public string Name { get; set; }
         public string Password { get; set; }
         public int Attack { get; set; }
         public int Gold { get; set; }
         public int Health { get; set; }
-        public bool IsDead { get; set; }
     }
 }
