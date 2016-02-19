@@ -83,7 +83,7 @@ namespace WarArena
                     {
 
                         Handler.WriteLine("This character already exist.");
-                        Handler.Write("Enter ýour password:");
+                        Handler.Write("Enter your password:");
                         var password = Handler.ReadString();
                         if (existingPlayer.Password == password)
                         {
