@@ -74,6 +74,7 @@ namespace WarArena
                     var model = Initiator.Mapper.Map<PlayerModel>(player);
                     model.Password = password;
                     repository.Add(model);
+                    player.Id = model.Id;
                 }
                 else
                 {
@@ -493,6 +494,14 @@ namespace WarArena
                             break;
                     }
                 }
+
+                IPlayersRepository repository = new DbPlayersRepository();
+                foreach (var player in Players)
+                {
+                    var model = Initiator.Mapper.Map<PlayerModel>(player);
+                    repository.Update(model);
+                }
+                
             } while (true);
         }
 

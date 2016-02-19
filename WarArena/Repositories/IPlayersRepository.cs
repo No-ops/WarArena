@@ -11,5 +11,6 @@ namespace WarArena.Repositories
     {
         PlayerModel GetByName(string name);
         void Add(PlayerModel player);
+        void Update(PlayerModel player);
     }
 }
