@@ -31,6 +31,7 @@ namespace WarArena
         Success,
         Fail,
         Gold,
+        Potion,
         Player
     }
 
@@ -46,6 +47,8 @@ namespace WarArena
         public Validator Validator { get; set; }
 
         public Player[] Players { get; set; }
+
+        public List<HealthPotion> Potions { get; set; }
 
         public Tile[,] GameMap { get; set; }
 
@@ -119,6 +122,15 @@ namespace WarArena
                 PrintHealthBar(currentPlayer.PlayerId, currentPlayer.Health);
             }
             PrintPlayerStats(player);
+            Handler.ChangeTextColor("Red");
+            if (Potions != null)
+            {
+                foreach (HealthPotion potion in Potions)
+                {
+                    Handler.SetCursorPosition(potion.Coordinates);
+                    Handler.Write("P");
+                }
+            }
         }
 
         private void PrintPlayerStats(Player player)
@@ -171,6 +183,17 @@ namespace WarArena
                         break;
                     }
                 }
+                if (Potions != null)
+                {
+                    foreach (var potion in Potions)
+                    {
+                        if (potion.Coordinates.X == coords.X && potion.Coordinates.Y == coords.Y)
+                        {
+                            tileIsFree = false;
+                            break;
+                        }
+                    }
+                }                
             } while (!tileIsFree);
             return coords;
         }
@@ -222,6 +245,13 @@ namespace WarArena
             Handler.SetCursorPosition(player.Coordinates);
             Handler.ChangeTextColor(player.PlayerColor);
             Handler.Write("@");
+        }
+
+        void PrintHealthPotion(HealthPotion potion)
+        {
+            Handler.SetCursorPosition(potion.Coordinates);
+            Handler.ChangeTextColor("Red");
+            Handler.Write("P");
         }
 
         void PrintInstructions()
@@ -380,6 +410,13 @@ namespace WarArena
             //PrintPlayer(player);
             if (GameMap[newCoords.X, newCoords.Y].HasGold)
                 return MoveResult.Gold;
+            foreach (var potion in Potions)
+            {
+                if (potion.Coordinates.X == newCoords.X && potion.Coordinates.Y == newCoords.Y)
+                {
+                    return MoveResult.Potion;
+                }
+            }
             return MoveResult.Success;
         }
 
@@ -466,6 +503,7 @@ namespace WarArena
                     if (player.IsDead)
                         RespawnPlayer(player);
                     PlaceGold();
+                    CreatePotion();
                     Display(player);
                     var input = Handler.ReadKey();
                     MoveResult moveResult = MoveResult.None;
@@ -491,6 +529,13 @@ namespace WarArena
                             player.Gold += GameMap[player.Coordinates.X, player.Coordinates.Y].Gold;
                             GameMap[player.Coordinates.X, player.Coordinates.Y].Gold = 0;
                             break;
+                        case MoveResult.Potion:
+                            HealthPotion potion = Potions
+                                .Single(p => p.Coordinates.X == player.Coordinates.X &&
+                                             p.Coordinates.Y == player.Coordinates.Y);
+                            player.Health += potion.Health;
+                            Potions.Remove(potion);
+                            break;
                     }
                 }
 
@@ -500,16 +545,31 @@ namespace WarArena
                     var model = Initiator.Mapper.Map<PlayerModel>(player);
                     repository.Update(model);
                 }
-                
+
             } while (true);
         }
 
-        private void PlaceGold()
+        void PlaceGold()
         {
             if (RandomizationFunctions.Chance(30))
             {
                 var coords = GetRandomFreeCoords();
                 GameMap[coords.X, coords.Y].Gold = RandomizationFunctions.GetRandomNumber(10, 50);
+            }
+        }
+
+        void CreatePotion()
+        {
+            if (RandomizationFunctions.Chance(30))
+            {
+                var coords = GetRandomFreeCoords();
+                var health = RandomizationFunctions.GetRandomNumber(1, 100);
+                HealthPotion potion = new HealthPotion(health, coords);
+                if (Potions == null)
+                {
+                    Potions = new List<HealthPotion>();
+                }
+                Potions.Add(potion);
             }
         }
 

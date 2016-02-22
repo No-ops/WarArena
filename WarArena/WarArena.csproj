@@ -73,6 +73,7 @@
   <ItemGroup>
     <Compile Include="Coords.cs" />
     <Compile Include="Game.cs" />
+    <Compile Include="HealthPotion.cs" />
     <Compile Include="Initiator.cs" />
     <Compile Include="IOHandler.cs" />
     <Compile Include="Models\PlayerModel.cs" />
