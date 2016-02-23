@@ -28,12 +28,13 @@ namespace WarArena
 
         // Request WAP/1.0 LOGIN <username> <password>)
 
-        // Respons WAP/1.0 SENDSTATE Pl,X,Y,h,g P,X,Y,h G,X,Y,g
-        //där pl är spelare, h är health, G är guld och g är mängden guld,
+        // Respons WAP/1.0 SENDSTATE Pl,Name,Id,X,Y,h,g P,X,Y,h G,X,Y,g
+        //där Pl är spelare, Name är namn, Id är PlayerId, h är health, G är guld och g är mängden guld,
+        //och P är potion.
 
         //Request WAP/1.0 MOVE DIR där DIR kan vara UP, DOWN, LEFT or Right.
 
-            //Request WAP/1.0 Message ____ där ____ är meddelandet.
+            //Request WAP/1.0 MESSAGE ____ där ____ är meddelandet.
 
         static class WWaServer
         {
@@ -135,7 +136,7 @@ namespace WarArena
                     foreach (Player player in _game.Players)
                     {
                         responseBuilder.Append(
-                            $"Pl,{player.Coordinates.X},{player.Coordinates.Y},{player.Health},{player.Gold} ");
+                            $"Pl,{player.Name},{player.PlayerId},{player.Coordinates.X},{player.Coordinates.Y},{player.Health},{player.Gold} ");
                     }
                     foreach (HealthPotion potion in _game.Potions)
                     {
@@ -185,8 +186,15 @@ namespace WarArena
                         startOk2 = ReceiveStartRequest(sockets[1], out player2, out message);
                         SendStartResponse(sockets[1], message);
                     }
+                    _game.Players[0] = player1;
+                    _game.Players[1] = player2;
                     _game.PlaceGold();
                     _game.CreatePotion();
+                    foreach (Player player in _game.Players)
+                    {
+                        if (player.IsDead)
+                            _game.RespawnPlayer(player);
+                    }
                     foreach (Socket socket in sockets)
                     {
                         SendResponse(socket, true);

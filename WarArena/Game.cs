@@ -42,6 +42,7 @@ namespace WarArena
             Handler = new IOHandler();
             Validator = new Validator();
             GameMap = MapCreator.CreateEmptyMap();
+            Players = new Player[2];
         }
         public IOHandler Handler { get; set; }
         public Validator Validator { get; set; }
@@ -558,7 +559,7 @@ namespace WarArena
             }
         }
 
-        private void RespawnPlayer(Player player)
+        public void RespawnPlayer(Player player)
         {
             GameMap[player.Coordinates.X, player.Coordinates.Y].Gold = player.Gold;
             player.Gold = 0;
