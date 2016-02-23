@@ -76,6 +76,7 @@ namespace WarArena
                     var password = Handler.ReadString();
                     var model = Initiator.Mapper.Map<PlayerModel>(player);
                     model.Password = password;
+                    model.Created = DateTime.Now;
                     repository.Add(model);
                 }
                 else
@@ -193,7 +194,7 @@ namespace WarArena
                             break;
                         }
                     }
-                }                
+                }
             } while (!tileIsFree);
             return coords;
         }
@@ -410,12 +411,16 @@ namespace WarArena
             //PrintPlayer(player);
             if (GameMap[newCoords.X, newCoords.Y].HasGold)
                 return MoveResult.Gold;
-            foreach (var potion in Potions)
+            if (Potions != null)
             {
-                if (potion.Coordinates.X == newCoords.X && potion.Coordinates.Y == newCoords.Y)
+                foreach (var potion in Potions)
                 {
-                    return MoveResult.Potion;
+                    if (potion.Coordinates.X == newCoords.X && potion.Coordinates.Y == newCoords.Y)
+                    {
+                        return MoveResult.Potion;
+                    }
                 }
+
             }
             return MoveResult.Success;
         }

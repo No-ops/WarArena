@@ -17,5 +17,6 @@ namespace WarArena.Models
         public int Attack { get; set; }
         public int Gold { get; set; }
         public int Health { get; set; }
+        public DateTime Created { get; set; }
     }
 }
