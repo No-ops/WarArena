@@ -88,6 +88,7 @@
     <Compile Include="Validator.cs" />
     <Compile Include="World\MapCreator.cs" />
     <Compile Include="World\Tile.cs" />
+    <Compile Include="WwaServer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

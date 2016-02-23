@@ -158,7 +158,7 @@ namespace WarArena
         }
 
 
-        Coords GetRandomFreeCoords()
+        public Coords GetRandomFreeCoords()
         {
             Coords coords = null;
             var tileIsFree = false;
@@ -306,57 +306,37 @@ namespace WarArena
             }
         }
 
-        void TakeAction(Player player, ConsoleKey key)
+        public void TakeAction(Player player, ConsoleKey key)
         {
-            Player defender;
+            MoveResult moveResult = MoveResult.None;
             switch (key)
             {
                 case ConsoleKey.UpArrow:
-                    defender = FindAdjacentPlayerInGivenDirection(player, Direction.North);
-                    if (defender == null)
-                    {
-                        MovePlayer(player, Direction.North);
-                    }
-                    else
-                    {
-                        Attack(player, defender);
-                    }
+                    moveResult = MovePlayer(player, Direction.North);
                     break;
-
                 case ConsoleKey.DownArrow:
-                    defender = FindAdjacentPlayerInGivenDirection(player, Direction.South);
-                    if (defender == null)
-                    {
-                        MovePlayer(player, Direction.South);
-                    }
-                    else
-                    {
-                        Attack(player, defender);
-                    }
+                    moveResult = MovePlayer(player, Direction.South);
                     break;
-
-                case ConsoleKey.RightArrow:
-                    defender = FindAdjacentPlayerInGivenDirection(player, Direction.East);
-                    if (defender == null)
-                    {
-                        MovePlayer(player, Direction.East);
-                    }
-                    else
-                    {
-                        Attack(player, defender);
-                    }
-                    break;
-
                 case ConsoleKey.LeftArrow:
-                    defender = FindAdjacentPlayerInGivenDirection(player, Direction.West);
-                    if (defender == null)
-                    {
-                        MovePlayer(player, Direction.West);
-                    }
-                    else
-                    {
-                        Attack(player, defender);
-                    }
+                    moveResult = MovePlayer(player, Direction.West);
+                    break;
+                case ConsoleKey.RightArrow:
+                    moveResult = MovePlayer(player, Direction.East);
+                    break;
+            }
+
+            switch (moveResult)
+            {
+                case MoveResult.Gold:
+                    player.Gold += GameMap[player.Coordinates.X, player.Coordinates.Y].Gold;
+                    GameMap[player.Coordinates.X, player.Coordinates.Y].Gold = 0;
+                    break;
+                case MoveResult.Potion:
+                    HealthPotion potion = Potions
+                        .Single(p => p.Coordinates.X == player.Coordinates.X &&
+                                     p.Coordinates.Y == player.Coordinates.Y);
+                    player.Health += potion.Health;
+                    Potions.Remove(potion);
                     break;
             }
         }
@@ -554,7 +534,7 @@ namespace WarArena
             } while (true);
         }
 
-        void PlaceGold()
+        public void PlaceGold()
         {
             if (RandomizationFunctions.Chance(30))
             {
@@ -563,7 +543,7 @@ namespace WarArena
             }
         }
 
-        void CreatePotion()
+        public void CreatePotion()
         {
             if (RandomizationFunctions.Chance(30))
             {
