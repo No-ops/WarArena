@@ -1,11 +1,11 @@
 
 using System;
 using System.Collections.Generic;
-using Core.Utilities;
+using WarArena.Utilities;
 
-namespace Core.World
+namespace WarArena.World
 {
-    static class MapCreator
+    public static class MapCreator
 	{
 		internal const int MapWidth = 40;
 		internal const int  MapHeight = 21;

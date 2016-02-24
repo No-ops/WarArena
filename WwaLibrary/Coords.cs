@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace WarArena
 {
-    class Coords
+    public class Coords
     {
         public Coords(int x, int y)
         {

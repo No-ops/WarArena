@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Core.World
+namespace WarArena.World
 {
     [Serializable]
-    class Tile
+    public class Tile
     { 
         public bool IsCaveWall { get; private set; }
         public char ImageCharacter
