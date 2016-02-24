@@ -28,18 +28,19 @@ namespace WarArena
 
         // Request WAP/1.0 LOGIN <username> <password>)
 
-        // Respons WAP/1.0 SENDSTATE Pl,Name,Id,X,Y,h,g P,X,Y,h G,X,Y,g
-        //där Pl är spelare, Name är namn, Id är PlayerId, h är health, G är guld och g är mängden guld,
+        // Respons WAP/1.0 SENDSTATE t Pl,Name,Id,X,Y,h,g P,X,Y,h G,X,Y,g
+        //där Pl är spelare, t är 1 och spelaren är vid draget, 0 annars, 
+        //Name är namn, Id är PlayerId, h är health, G är guld och g är mängden guld,
         //och P är potion.
 
-        //Request WAP/1.0 MOVE DIR där DIR kan vara UP, DOWN, LEFT or Right.
+        //Request WAP/1.0 MOVE DIR där DIR kan vara UP, DOWN, LEFT or RIGHT.
 
             //Request WAP/1.0 MESSAGE ____ där ____ är meddelandet.
 
         static class WWaServer
         {
             const Int32 LISTENERBACKLOG = 100;
-            const Int32 BUFFERLENGTH = 200;
+            const Int32 BUFFERLENGTH = 400;
             const String IPADDRESS = "127.0.0.1";
             //const String IPADDRESS = "10.56.5.232";
             const Int32 PORT = 8001;
