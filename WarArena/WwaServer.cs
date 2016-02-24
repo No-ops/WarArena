@@ -18,288 +18,263 @@ namespace WarArena
     using System.Net.Sockets;
     using System.Text;
 
-    namespace Natverk_Uppg15a
+    // War Arena Protocol (WAP/1.0):
+
+    // Data format: Text.
+    // Character encoding: UTF8.
+    // Maximal message size: 500 bytes.
+
+    // Request WAP/1.0 LOGIN <username> <password>
+
+    // Respons WAP/1.0 SENDSTATE Pl,Name,Id,X,Y,h,g P,X,Y,h G,X,Y,g
+    // där Pl är spelare, Name är namn, Id är PlayerId, h är health, G är guld och g är mängden guld,
+    // och P är potion.
+
+    // Respons WAP/1.0 NEWPLAYER Name,Id,X,Y,h,g
+
+    // Respons WAP/1.0 REMOVEPLAYER Id
+
+    // Respons WAP/1.0 UPDATEPLAYER Id,X,Y,h,g
+
+    // Respons WAP/1.0 UPDATEGOLD X,Y,g
+
+    // Respons WAP/1.0 UPDATEPOTION X,Y,h
+
+    // Respons WAP/1.0 YOURTURN
+
+    // Respons WAP/1.0 DENIED <COMMAND> (<MESSAGE>)
+
+    //Request WAP/1.0 MOVE DIR där DIR kan vara UP, DOWN, LEFT or Right.
+
+    //Request WAP/1.0 MESSAGE ____ där ____ är meddelandet.
+
+    static class WWaServer
     {
-        // War Arena Protocol (WAP/1.0):
+        const Int32 LISTENERBACKLOG = 100;
+        const Int32 BUFFERLENGTH = 500;
+        const Int32 PORT = 8001;
+        static Game _game = new Game();
+        static IPAddress ipAddress = IPAddress.Any;
+        static IPEndPoint localEndPoint = new IPEndPoint(ipAddress, PORT);
+        static UTF8Encoding encoding = new UTF8Encoding();
 
-        // Data format: Text.
-        // Character encoding: UTF8.
-        // Maximal message size: 200 bytes.
-
-        // Request WAP/1.0 LOGIN <username> <password>)
-
-        // Respons WAP/1.0 SENDSTATE Pl,Name,Id,X,Y,h,g P,X,Y,h G,X,Y,g
-        //där Pl är spelare, Name är namn, Id är PlayerId, h är health, G är guld och g är mängden guld,
-        //och P är potion.
-
-        //Request WAP/1.0 MOVE DIR där DIR kan vara UP, DOWN, LEFT or Right.
-
-            //Request WAP/1.0 MESSAGE ____ där ____ är meddelandet.
-
-        static class WWaServer
+        static Boolean ReceiveStartRequest(Socket socket, out Player player,
+            out string message)
         {
-            const Int32 LISTENERBACKLOG = 100;
-            const Int32 BUFFERLENGTH = 200;
-            const String IPADDRESS = "127.0.0.1";
-            //const String IPADDRESS = "10.56.5.232";
-            const Int32 PORT = 8001;
-            static Game _game = new Game();
-            static IPAddress ipAddress = IPAddress.Parse(IPADDRESS);
-            static IPEndPoint localEndPoint = new IPEndPoint(ipAddress, PORT);
-            static UTF8Encoding encoding = new UTF8Encoding();
+            _game.GameMap = MapCreator.CreateEmptyMap();
 
-            static Boolean ReceiveStartRequest(Socket socket, out Player player,
-                out string message)
+            Byte[] bufferIn = new Byte[BUFFERLENGTH];
+            socket.Receive(bufferIn);
+            String request = encoding.GetString(bufferIn).TrimEnd('\0').Trim();
+
+            int threadId = Thread.CurrentThread.ManagedThreadId;
+            Console.WriteLine(threadId + ": Received request from " + socket.RemoteEndPoint + ": " + request);
+            var tokens = request.Split(' ');
+            bool ok = tokens[0] == "WAP/1.0" &&
+                      tokens[1] == "LOGIN";
+            string name = tokens[2];
+            string password = tokens[3];
+            IPlayersRepository repository = new DbPlayersRepository();
+            PlayerModel model = repository.GetByName(name);
+            var game = new Game();
+            if (model == null) //Finns inte i databasen
             {
-                _game.GameMap = MapCreator.CreateEmptyMap();
+                player = new Player(name, 100, 10, 0, game.GetRandomFreeCoords());
+                model = Initiator.Mapper.Map<PlayerModel>(player);
+                model.Password = password;
+                repository.Add(model);
+                message = "En ny spelare har skapats";
 
-                Byte[] bufferIn = new Byte[BUFFERLENGTH];
-                socket.Receive(bufferIn);
-                String request = encoding.GetString(bufferIn).TrimEnd('\0').Trim();
-
-                int threadId = Thread.CurrentThread.ManagedThreadId;
-                Console.WriteLine(threadId + ": Received request from " + socket.RemoteEndPoint + ": " + request);
-                var tokens = request.Split(' ');
-                bool ok = tokens[0] == "WAP/1.0" &&
-                          tokens[1] == "LOGIN";
-                string name = tokens[2];
-                string password = tokens[3];
-                IPlayersRepository repository = new DbPlayersRepository();
-                PlayerModel model = repository.GetByName("name");
-                var game = new Game();
-                if (model == null) //Finns inte i databasen
-                {
-                    player = new Player(name, 100, 10, 0, game.GetRandomFreeCoords());
-                    model = Initiator.Mapper.Map<PlayerModel>(player);
-                    model.Password = password;
-                    repository.Add(model);
-                    message = "En ny spelare har skapats";
-
-                }
-                else //Finns i databasen
-                {
-                    if (model.Password != password)
-                    {
-                        message = "Fel lösenord";
-                        player = null;
-                        return false;
-                    }
-                    player = Initiator.Mapper.Map<Player>(model);
-                    player.Coordinates = game.GetRandomFreeCoords();
-                    message = "En befintlig spelare har hämtats.";
-                }
-                return ok;
             }
-
-            static bool ReceiveRequest(Socket socket)
+            else //Finns i databasen
             {
-                int threadId = Thread.CurrentThread.ManagedThreadId;
-                var bufferIn = new byte[BUFFERLENGTH];
-                socket.Receive(bufferIn);
-                string request = encoding.GetString(bufferIn).TrimEnd('\0').Trim();
-                Console.WriteLine(threadId + ": Received request from " + socket.RemoteEndPoint + ": " + request);
-                string[] requestParts = request.Split(' ');
-                if (requestParts[0] == "WAP/1.0" && requestParts[1] == "MOVE")
+                if (model.Password != password)
                 {
-                    Player player = _game.Players.SingleOrDefault(p => p.Name == requestParts[2]);
-                    if (player == null)
-                    {
-                        return false;
-                    }
-                    switch (requestParts[3])
-                    {
-                        case "UP":
-                            _game.TakeAction(player, ConsoleKey.UpArrow);
-                            break;
-                        case "DOWN":
-                            _game.TakeAction(player, ConsoleKey.DownArrow);
-                            break;
-                        case "LEFT":
-                            _game.TakeAction(player, ConsoleKey.LeftArrow);
-                            break;
-                        case "RIGHT":
-                            _game.TakeAction(player, ConsoleKey.RightArrow);
-                            break;
-                    }
-                    return true;
-                }
+                    message = "Fel lösenord";
+                    player = null;
                     return false;
+                }
+                player = Initiator.Mapper.Map<Player>(model);
+                player.Coordinates = game.GetRandomFreeCoords();
+                message = "En befintlig spelare har hämtats.";
             }
+            return ok;
+        }
 
-            static void SendResponse(Socket socket, bool ok)
+        static bool ReceiveRequest(Socket socket)
+        {
+            int threadId = Thread.CurrentThread.ManagedThreadId;
+            var bufferIn = new byte[BUFFERLENGTH];
+            socket.Receive(bufferIn);
+            string request = encoding.GetString(bufferIn).TrimEnd('\0').Trim();
+            Console.WriteLine(threadId + ": Received request from " + socket.RemoteEndPoint + ": " + request);
+            string[] requestParts = request.Split(' ');
+            if (requestParts[0] == "WAP/1.0" && requestParts[1] == "MOVE")
             {
-                int threadId = Thread.CurrentThread.ManagedThreadId;
-                var responseBuilder = new StringBuilder();
-                if (ok)
+                Player player = _game.Players.SingleOrDefault(p => p.Name == requestParts[2]);
+                if (player == null)
                 {
-                    responseBuilder.Append("WAP/1.0 SENDSTATE ");
-                    foreach (Player player in _game.Players)
-                    {
-                        responseBuilder.Append(
-                            $"Pl,{player.Name},{player.PlayerId},{player.Coordinates.X},{player.Coordinates.Y},{player.Health},{player.Gold} ");
-                    }
-                    foreach (HealthPotion potion in _game.Potions)
-                    {
-                        responseBuilder.Append(
-                            $"P,{potion.Coordinates.X},{potion.Coordinates.Y},{potion.Health} ");
-                    }
-                    foreach (Tile tile in _game.GameMap)
-                    {
-                        if (tile.HasGold)
-                        {
-                            responseBuilder.Append($"G,{tile.X},{tile.Y},{tile.Gold}");
-                        }
-                    }
-                    string response = responseBuilder.ToString();
-                    byte[] bytes = Encoding.UTF8.GetBytes(response);
-                    socket.Send(bytes);
-                    Console.WriteLine(threadId + ": Sent response to " + socket.RemoteEndPoint + ": " + response);
+                    return false;
                 }
-                else
+                switch (requestParts[3])
                 {
-                    byte[] bytes = Encoding.UTF8.GetBytes("BAD REQUEST");
-                    socket.Send(bytes);
+                    case "UP":
+                        _game.TakeAction(player, ConsoleKey.UpArrow);
+                        break;
+                    case "DOWN":
+                        _game.TakeAction(player, ConsoleKey.DownArrow);
+                        break;
+                    case "LEFT":
+                        _game.TakeAction(player, ConsoleKey.LeftArrow);
+                        break;
+                    case "RIGHT":
+                        _game.TakeAction(player, ConsoleKey.RightArrow);
+                        break;
                 }
+                return true;
             }
+            return false;
+        }
 
-            static void PlayWarArena(Object parameter)
+        static void SendResponse(Socket socket, bool ok)
+        {
+            int threadId = Thread.CurrentThread.ManagedThreadId;
+            var responseBuilder = new StringBuilder();
+            if (ok)
             {
-                Socket[] sockets = (Socket[])parameter;
-                Player player1 = null;
-                Player player2 = null;
-                string message;
-                IPlayersRepository repository = new DbPlayersRepository();
-                //Tile[,] board;
-
-                try
+                responseBuilder.Append("WAP/1.0 SENDSTATE ");
+                foreach (Player player in _game.Players)
                 {
-                    bool startOk1 = false;
-                    bool startOk2 = false;
-                    while (!startOk1)
+                    responseBuilder.Append(
+                        $"Pl,{player.Name},{player.PlayerId},{player.Coordinates.X},{player.Coordinates.Y},{player.Health},{player.Gold} ");
+                }
+                foreach (HealthPotion potion in _game.Potions)
+                {
+                    responseBuilder.Append(
+                        $"P,{potion.Coordinates.X},{potion.Coordinates.Y},{potion.Health} ");
+                }
+                foreach (Tile tile in _game.GameMap)
+                {
+                    if (tile.HasGold)
                     {
-                        startOk1 =
-                        ReceiveStartRequest(sockets[0], out player1, out message);
-                        SendStartResponse(sockets[0], message);
-                    }
-                                           
-                    while (!startOk2)
-                    {
-                        startOk2 = ReceiveStartRequest(sockets[1], out player2, out message);
-                        SendStartResponse(sockets[1], message);
-                    }
-                    _game.Players[0] = player1;
-                    _game.Players[1] = player2;
-                    _game.PlaceGold();
-                    _game.CreatePotion();
-                    foreach (Player player in _game.Players)
-                    {
-                        if (player.IsDead)
-                            _game.RespawnPlayer(player);
-                    }
-                    foreach (Socket socket in sockets)
-                    {
-                        SendResponse(socket, true);
-                    }
-
-                    while (true)
-                    {
-                        _game.PlaceGold();
-                        _game.CreatePotion();
-
-                        // Player 1.
-                        Boolean ok = false;
-                        while (!ok)
-                        {
-                            ok = ReceiveRequest(sockets[0]);
-                            foreach (Socket socket in sockets)
-                            {
-                                SendResponse(socket, ok);
-                            }
-                        }
-
-                        PlayerModel model = Initiator.Mapper.Map<PlayerModel>(_game.Players[0]);
-                        repository.Update(model);
-                        
-                        // Player 2.
-                        ok = false;
-                        while (!ok)
-                        {
-                            ok = ReceiveRequest(sockets[1]);
-                            foreach (Socket socket in sockets)
-                            {
-                                SendResponse(socket, ok);
-                            }
-                        }
-                        model = Initiator.Mapper.Map<PlayerModel>(_game.Players[0]);
-                        repository.Update(model);
+                        responseBuilder.Append($"G,{tile.X},{tile.Y},{tile.Gold}");
                     }
                 }
-                catch (Exception exception)
-                {
-                    Console.WriteLine("Exception: " + exception.Message);
-                    Console.WriteLine("Stack trace: " + exception.StackTrace);
-                    Console.ReadLine();
-                }
-                finally
-                {
-                    sockets[0]?.Close();
-                    sockets[1]?.Close();
-                }
-            }
-
-            static void SendStartResponse(Socket socket, string message)
-            {
-                int threadId = Thread.CurrentThread.ManagedThreadId;
-                string response = $"WAP/1.0 MESSAGE {message}";
-                byte[] bytes = Encoding.UTF8.GetBytes($"WAP/1.0 MESSAGE {message}");
+                string response = responseBuilder.ToString();
+                byte[] bytes = Encoding.UTF8.GetBytes(response);
                 socket.Send(bytes);
                 Console.WriteLine(threadId + ": Sent response to " + socket.RemoteEndPoint + ": " + response);
             }
-
-            static void Main()
+            else
             {
-                Socket listeningSocket = null;
-                Socket[] sockets = new Socket[2];
-                try
+                byte[] bytes = Encoding.UTF8.GetBytes("BAD REQUEST");
+                socket.Send(bytes);
+            }
+        }
+
+        static void PlayWarArena(Object parameter)
+        {
+            Socket[] sockets = (Socket[])parameter;
+            var players = new List<Player>();
+            IPlayersRepository repository = new DbPlayersRepository();
+        }
+
+        static void SendStartResponse(Socket socket, string message)
+        {
+            int threadId = Thread.CurrentThread.ManagedThreadId;
+            string response = $"WAP/1.0 MESSAGE {message}";
+            byte[] bytes = Encoding.UTF8.GetBytes($"WAP/1.0 MESSAGE {message}");
+            socket.Send(bytes);
+            Console.WriteLine(threadId + ": Sent response to " + socket.RemoteEndPoint + ": " + response);
+        }
+
+        static void Main()
+        {
+            Console.WriteLine("Initiating...");
+            Initiator.AutoMapperConfig();
+            Console.WriteLine("Creating new game...");
+            var game = new Game();
+            Console.WriteLine("Starting server...");
+            Socket listeningSocket = null;
+            var clients = new List<Client>();
+            var messageQueue = new Queue<Message>();
+            var unconfirmedConnections = new List<Socket>();
+            try
+            {
+                listeningSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                listeningSocket.Bind(localEndPoint);
+                listeningSocket.Listen(LISTENERBACKLOG);
+                Console.WriteLine(": WWAServer is listening.");
+                Console.WriteLine(": Local end point: " + listeningSocket.LocalEndPoint);
+                while (true)
                 {
-                    Int32 threadId = Thread.CurrentThread.ManagedThreadId;
-                    listeningSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                    listeningSocket.Bind(localEndPoint);
-                    while (true)
+                    // Check for dead connections
+                    for (int i = 0; i < unconfirmedConnections.Count; i++)
                     {
-                        // Player 1.
-                        listeningSocket.Listen(LISTENERBACKLOG);
-                        Console.WriteLine(threadId + ": BattlefieldServer is listening.");
-                        Console.WriteLine(threadId + ": Local end point: " + listeningSocket.LocalEndPoint);
-                        sockets[0] = listeningSocket.Accept();
-                        Console.WriteLine(threadId + ": Connection accepted (player 1).");
-                        Console.WriteLine(threadId + ": Local end point: " + sockets[0].LocalEndPoint);
-                        Console.WriteLine(threadId + ": Remote end point: " + sockets[0].RemoteEndPoint);
+                        if (IsDisconnected(unconfirmedConnections[i]))
+                        {
+                            Console.WriteLine($"{unconfirmedConnections[i].RemoteEndPoint} disconnected.");
+                            unconfirmedConnections[i].Close();
+                            unconfirmedConnections.RemoveAt(i--);
+                        }
+                    }
 
-                        // Player 2
-                        listeningSocket.Listen(LISTENERBACKLOG);
-                        Console.WriteLine(threadId + ": BattlefieldServer is listening.");
-                        Console.WriteLine(threadId + ": Local end point: " + listeningSocket.LocalEndPoint);
-                        sockets[1] = listeningSocket.Accept();
-                        Console.WriteLine(threadId + ": Connection accepted (player 2).");
-                        Console.WriteLine(threadId + ": Local end point: " + sockets[1].LocalEndPoint);
-                        Console.WriteLine(threadId + ": Remote end point: " + sockets[1].RemoteEndPoint);
+                    for (int i = 0; i < clients.Count; i++)
+                    {
+                        if (IsDisconnected(clients[i].Socket))
+                        {
+                            Console.WriteLine($"{clients[i].Socket.RemoteEndPoint} ({clients[i].Player.Name}) disconnected.");
+                            messageQueue.Enqueue(new Message($"REMOVEPLAYER {clients[i].Player.PlayerId}", Message.RecipientType.All, 0));
+                            clients[i].Socket.Close();
+                            clients.RemoveAt(i--);
+                        }
+                    }
 
-                        ParameterizedThreadStart threadStart = PlayWarArena;
-                        Thread thread = new Thread(threadStart);
-                        thread.Start(sockets);
+                    // Check for new logins
+                    if (clients.Count < 5)
+                    {
+                        for (int i = 0; i < unconfirmedConnections.Count; i++)
+                        {
+                            var connection = unconfirmedConnections[i];
+                            if (connection.Available > 0)
+                            {
+                                var buffer = new byte[BUFFERLENGTH];
+                                var bytesReceived = connection.Receive(buffer);
+                                var command = encoding.GetString(buffer, 0, bytesReceived);
+                                string[] parts;
+                                // Ignore any command that is not LOGIN
+                                if (command.StartsWith("WAP/1.0 LOGIN") && (parts = command.Split(' ')).Length == 4)
+                                {
+                                    
+                                }
+                            }
+                        }
+                    }
+
+                    if (clients.Count < 5 && listeningSocket.Available != 0)
+                    {
+                        var newConnection = listeningSocket.Accept();
+                        Console.WriteLine(": New connection accepted.");
+                        Console.WriteLine(": Local end point: " + newConnection.LocalEndPoint);
+                        Console.WriteLine(": Remote end point: " + newConnection.RemoteEndPoint);
+                        unconfirmedConnections.Add(newConnection);
                     }
                 }
-                catch (Exception exception)
-                {
-                    Console.WriteLine(exception.Message);
-                    Console.ReadLine();
-                }
-                finally
-                {
-                    listeningSocket?.Close();
-                }
             }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception.Message);
+                Console.ReadLine();
+            }
+            finally
+            {
+                listeningSocket?.Close();
+            }
+        }
+
+        private static bool IsDisconnected(Socket socket)
+        {
+            return socket.Available == 0 && socket.Poll(1000, SelectMode.SelectRead);
         }
     }
 }
