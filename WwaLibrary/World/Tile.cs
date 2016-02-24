@@ -44,5 +44,7 @@ namespace WarArena.World
 
         public int Gold { get; set; }
         public bool HasGold => Gold > 0;
+        public int Health { get; set; }
+        public bool HasHealth => Gold > 0;
     }
 }

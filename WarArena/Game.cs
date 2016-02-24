@@ -41,13 +41,11 @@ namespace WarArena
         {
             Handler = new IOHandler();
             GameMap = MapCreator.CreateEmptyMap();
-            Players = new Player[2];
+            Players = new List<Player>();
         }
         public IOHandler Handler { get; set; }
 
-        public Player[] Players { get; set; }
-
-        public List<HealthPotion> Potions { get; set; }
+        public List<Player>  Players { get; set; }
 
         public Tile[,] GameMap { get; set; }
 
@@ -108,7 +106,7 @@ namespace WarArena
 
         public void SetUpGame()
         {
-            Players = new Player[2];
+            Players = new List<Player>();
             Players[0] = CreatePlayer();
             Players[1] = CreatePlayer();
         }
@@ -123,14 +121,6 @@ namespace WarArena
             }
             PrintPlayerStats(player);
             Handler.ChangeTextColor("Red");
-            if (Potions != null)
-            {
-                foreach (HealthPotion potion in Potions)
-                {
-                    Handler.SetCursorPosition(potion.Coordinates);
-                    Handler.Write("P");
-                }
-            }
         }
 
         private void PrintPlayerStats(Player player)
@@ -168,7 +158,9 @@ namespace WarArena
                     RandomizationFunctions.GetRandomNumber(0, GameMap.GetLength(1) - 1)
                     );
 
-                if (GameMap[coords.X, coords.Y].HasGold || GameMap[coords.X, coords.Y].IsCaveWall)
+                if (GameMap[coords.X, coords.Y].HasGold 
+                    || GameMap[coords.X, coords.Y].IsCaveWall 
+                    || GameMap[coords.X, coords.Y].HasHealth)
                     continue;
 
                 tileIsFree = true;
@@ -183,17 +175,7 @@ namespace WarArena
                         break;
                     }
                 }
-                if (Potions != null)
-                {
-                    foreach (var potion in Potions)
-                    {
-                        if (potion.Coordinates.X == coords.X && potion.Coordinates.Y == coords.Y)
-                        {
-                            tileIsFree = false;
-                            break;
-                        }
-                    }
-                }
+                
             } while (!tileIsFree);
             return coords;
         }
@@ -331,11 +313,8 @@ namespace WarArena
                     GameMap[player.Coordinates.X, player.Coordinates.Y].Gold = 0;
                     break;
                 case MoveResult.Potion:
-                    HealthPotion potion = Potions
-                        .Single(p => p.Coordinates.X == player.Coordinates.X &&
-                                     p.Coordinates.Y == player.Coordinates.Y);
-                    player.Health += potion.Health;
-                    Potions.Remove(potion);
+                    player.Health += GameMap[player.Coordinates.X, player.Coordinates.Y].Health;
+                    GameMap[player.Coordinates.X, player.Coordinates.Y].Health = 0;
                     break;
             }
         }
@@ -390,17 +369,9 @@ namespace WarArena
             //PrintPlayer(player);
             if (GameMap[newCoords.X, newCoords.Y].HasGold)
                 return MoveResult.Gold;
-            if (Potions != null)
-            {
-                foreach (var potion in Potions)
-                {
-                    if (potion.Coordinates.X == newCoords.X && potion.Coordinates.Y == newCoords.Y)
-                    {
-                        return MoveResult.Potion;
-                    }
-                }
+            if (GameMap[newCoords.X, newCoords.Y].HasHealth)
+                return MoveResult.Potion;
 
-            }
             return MoveResult.Success;
         }
 
@@ -507,20 +478,20 @@ namespace WarArena
                             break;
                     }
 
-                    switch (moveResult)
-                    {
-                        case MoveResult.Gold:
-                            player.Gold += GameMap[player.Coordinates.X, player.Coordinates.Y].Gold;
-                            GameMap[player.Coordinates.X, player.Coordinates.Y].Gold = 0;
-                            break;
-                        case MoveResult.Potion:
-                            HealthPotion potion = Potions
-                                .Single(p => p.Coordinates.X == player.Coordinates.X &&
-                                             p.Coordinates.Y == player.Coordinates.Y);
-                            player.Health += potion.Health;
-                            Potions.Remove(potion);
-                            break;
-                    }
+                    //switch (moveResult)
+                    //{
+                    //    case MoveResult.Gold:
+                    //        player.Gold += GameMap[player.Coordinates.X, player.Coordinates.Y].Gold;
+                    //        GameMap[player.Coordinates.X, player.Coordinates.Y].Gold = 0;
+                    //        break;
+                    //    case MoveResult.Potion:
+                    //        HealthPotion potion = Potions
+                    //            .Single(p => p.Coordinates.X == player.Coordinates.X &&
+                    //                         p.Coordinates.Y == player.Coordinates.Y);
+                    //        player.Health += potion.Health;
+                    //        Potions.Remove(potion);
+                    //        break;
+                    //}
                 }
 
                 IPlayersRepository repository = new DbPlayersRepository();
@@ -548,12 +519,7 @@ namespace WarArena
             {
                 var coords = GetRandomFreeCoords();
                 var health = RandomizationFunctions.GetRandomNumber(1, 100);
-                HealthPotion potion = new HealthPotion(health, coords);
-                if (Potions == null)
-                {
-                    Potions = new List<HealthPotion>();
-                }
-                Potions.Add(potion);
+                GameMap[coords.X, coords.Y].Health = health;
             }
         }
 

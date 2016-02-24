@@ -139,11 +139,11 @@ namespace WarArena
                         responseBuilder.Append(
                             $"Pl,{player.Name},{player.PlayerId},{player.Coordinates.X},{player.Coordinates.Y},{player.Health},{player.Gold} ");
                     }
-                    foreach (HealthPotion potion in _game.Potions)
-                    {
-                        responseBuilder.Append(
-                            $"P,{potion.Coordinates.X},{potion.Coordinates.Y},{potion.Health} ");
-                    }
+                    //foreach (HealthPotion potion in _game.Potions)
+                    //{
+                    //    responseBuilder.Append(
+                    //        $"P,{potion.Coordinates.X},{potion.Coordinates.Y},{potion.Health} ");
+                    //}
                     foreach (Tile tile in _game.GameMap)
                     {
                         if (tile.HasGold)
