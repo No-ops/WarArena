@@ -6,14 +6,14 @@ using System.Threading.Tasks;
 
 namespace WarArena
 {
-    class Validator
+    public static class Validator
     {
-        public bool HasMinLength(string text, int minLength)
+        public static bool HasMinLength(string text, int minLength)
         {
             return text.Length >= minLength;
         }
 
-        public bool IsKeyValid(ConsoleKey key, params ConsoleKey[] validKeys)
+        public static bool IsKeyValid(ConsoleKey key, params ConsoleKey[] validKeys)
         {
             return validKeys.Contains(key);
         }

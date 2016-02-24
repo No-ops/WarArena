@@ -71,25 +71,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Coords.cs" />
     <Compile Include="Game.cs" />
-    <Compile Include="HealthPotion.cs" />
     <Compile Include="Initiator.cs" />
-    <Compile Include="IOHandler.cs" />
-    <Compile Include="Message.cs" />
     <Compile Include="Models\PlayerModel.cs" />
     <Compile Include="Models\WarArenaContext.cs" />
-    <Compile Include="Monster.cs" />
-    <Compile Include="Player.cs" />
-    <Compile Include="PlayerClient.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Repositories\DbPlayersRepository.cs" />
     <Compile Include="Repositories\IPlayersRepository.cs" />
-    <Compile Include="Utilities\RandomizationFunctions.cs" />
-    <Compile Include="Validator.cs" />
-    <Compile Include="World\MapCreator.cs" />
-    <Compile Include="World\Tile.cs" />
     <Compile Include="WwaServer.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -107,6 +96,12 @@
       <ProductName>.NET Framework 3.5 SP1</ProductName>
       <Install>false</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\WwaLibrary\WwaLibrary.csproj">
+      <Project>{94112948-9046-4a64-b86f-73bc944fdf35}</Project>
+      <Name>WwaLibrary</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

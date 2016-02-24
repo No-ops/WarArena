@@ -6,7 +6,14 @@ using System.Threading.Tasks;
 
 namespace WarArena
 {
-    class Player
+    public enum Direction
+    {
+        North,
+        South,
+        East,
+        West
+    }
+    public class Player
     {
         public static readonly string[] PlayerColors = { "Red", "Blue", "Green" };
 
@@ -34,7 +41,6 @@ namespace WarArena
         public int Health { get; set; }
         public bool IsDead { get; set; }
         public Coords Coordinates { get; set; }
-        public AttackType AttackType { get; set; }
         public string PlayerColor => PlayerColors[PlayerId];
         public void Move(Direction direction)
         {

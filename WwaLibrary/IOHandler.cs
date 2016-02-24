@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 
 namespace WarArena
 {
-    class IOHandler
+    public class IOHandler
     {
         public void SetCursorPosition(Coords coordinates)
         {

@@ -4,9 +4,9 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Core.Utilities
+namespace WarArena.Utilities
 {
-    static class RandomizationFunctions
+    public static class RandomizationFunctions
     {
         static Random random = new Random();
 

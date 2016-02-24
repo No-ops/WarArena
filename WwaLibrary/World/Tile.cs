@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Core.World
+namespace WarArena.World
 {
     [Serializable]
-    class Tile
+    public class Tile
     { 
         public bool IsCaveWall { get; private set; }
         public char ImageCharacter
@@ -44,5 +44,7 @@ namespace Core.World
 
         public int Gold { get; set; }
         public bool HasGold => Gold > 0;
+        public int Health { get; set; }
+        public bool HasHealth => Gold > 0;
     }
 }

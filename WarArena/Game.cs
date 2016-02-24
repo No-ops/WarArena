@@ -3,20 +3,20 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Core.Utilities;
-using Core.World;
+using WarArena.Utilities;
+using WarArena.World;
 using WarArena.Models;
 using WarArena.Repositories;
 
 namespace WarArena
 {
-    enum Direction
-    {
-        North,
-        South,
-        East,
-        West
-    }
+    //enum Direction
+    //{
+    //    North,
+    //    South,
+    //    East,
+    //    West
+    //}
 
     enum AttackType
     {
@@ -40,16 +40,12 @@ namespace WarArena
         public Game()
         {
             Handler = new IOHandler();
-            Validator = new Validator();
             GameMap = MapCreator.CreateEmptyMap();
-            Players = new Player[2];
+            Players = new List<Player>();
         }
         public IOHandler Handler { get; set; }
-        public Validator Validator { get; set; }
 
-        public Player[] Players { get; set; }
-
-        public List<HealthPotion> Potions { get; set; }
+        public List<Player>  Players { get; set; }
 
         public Tile[,] GameMap { get; set; }
 
@@ -110,7 +106,7 @@ namespace WarArena
 
         public void SetUpGame()
         {
-            Players = new Player[2];
+            Players = new List<Player>();
             Players[0] = CreatePlayer();
             Players[1] = CreatePlayer();
         }
@@ -125,14 +121,6 @@ namespace WarArena
             }
             PrintPlayerStats(player);
             Handler.ChangeTextColor("Red");
-            if (Potions != null)
-            {
-                foreach (HealthPotion potion in Potions)
-                {
-                    Handler.SetCursorPosition(potion.Coordinates);
-                    Handler.Write("P");
-                }
-            }
         }
 
         private void PrintPlayerStats(Player player)
@@ -170,7 +158,9 @@ namespace WarArena
                     RandomizationFunctions.GetRandomNumber(0, GameMap.GetLength(1) - 1)
                     );
 
-                if (GameMap[coords.X, coords.Y].HasGold || GameMap[coords.X, coords.Y].IsCaveWall)
+                if (GameMap[coords.X, coords.Y].HasGold 
+                    || GameMap[coords.X, coords.Y].IsCaveWall 
+                    || GameMap[coords.X, coords.Y].HasHealth)
                     continue;
 
                 tileIsFree = true;
@@ -185,17 +175,7 @@ namespace WarArena
                         break;
                     }
                 }
-                if (Potions != null)
-                {
-                    foreach (var potion in Potions)
-                    {
-                        if (potion.Coordinates.X == coords.X && potion.Coordinates.Y == coords.Y)
-                        {
-                            tileIsFree = false;
-                            break;
-                        }
-                    }
-                }
+                
             } while (!tileIsFree);
             return coords;
         }
@@ -333,11 +313,8 @@ namespace WarArena
                     GameMap[player.Coordinates.X, player.Coordinates.Y].Gold = 0;
                     break;
                 case MoveResult.Potion:
-                    HealthPotion potion = Potions
-                        .Single(p => p.Coordinates.X == player.Coordinates.X &&
-                                     p.Coordinates.Y == player.Coordinates.Y);
-                    player.Health += potion.Health;
-                    Potions.Remove(potion);
+                    player.Health += GameMap[player.Coordinates.X, player.Coordinates.Y].Health;
+                    GameMap[player.Coordinates.X, player.Coordinates.Y].Health = 0;
                     break;
             }
         }
@@ -392,17 +369,9 @@ namespace WarArena
             //PrintPlayer(player);
             if (GameMap[newCoords.X, newCoords.Y].HasGold)
                 return MoveResult.Gold;
-            if (Potions != null)
-            {
-                foreach (var potion in Potions)
-                {
-                    if (potion.Coordinates.X == newCoords.X && potion.Coordinates.Y == newCoords.Y)
-                    {
-                        return MoveResult.Potion;
-                    }
-                }
+            if (GameMap[newCoords.X, newCoords.Y].HasHealth)
+                return MoveResult.Potion;
 
-            }
             return MoveResult.Success;
         }
 
@@ -413,72 +382,72 @@ namespace WarArena
                 defender.IsDead = true;
         }
 
-        public void Attack(Player attacker, Player defender)
-        {
-            SetAttackType(attacker);
-            SetAttackType(defender);
-            switch (attacker.AttackType)
-            {
-                case AttackType.OverheadSwing:
-                    if (defender.AttackType == AttackType.Slash)
-                    {
-                        defender.Health -= 10;
-                        PrintCombatResult(attacker, defender);
-                    }
-                    else if (defender.AttackType == AttackType.Thrust)
-                    {
-                        attacker.Health -= 10;
-                        PrintCombatResult(defender, attacker);
-                    }
-                    break;
-                case AttackType.Slash:
-                    if (defender.AttackType == AttackType.Thrust)
-                    {
-                        defender.Health -= 10;
-                        PrintCombatResult(attacker, defender);
-                    }
-                    else if (defender.AttackType == AttackType.OverheadSwing)
-                    {
-                        attacker.Health -= 10;
-                        PrintCombatResult(defender, attacker);
-                    }
-                    break;
-                case AttackType.Thrust:
-                    if (defender.AttackType == AttackType.OverheadSwing)
-                    {
-                        defender.Health -= 10;
-                        PrintCombatResult(attacker, defender);
-                    }
-                    else if (defender.AttackType == AttackType.Slash)
-                    {
-                        attacker.Health -= 10;
-                        PrintCombatResult(defender, attacker);
-                    }
-                    break;
-            }
-        }
+        //public void Attack(Player attacker, Player defender)
+        //{
+        //    SetAttackType(attacker);
+        //    SetAttackType(defender);
+        //    switch (attacker.AttackType)
+        //    {
+        //        case AttackType.OverheadSwing:
+        //            if (defender.AttackType == AttackType.Slash)
+        //            {
+        //                defender.Health -= 10;
+        //                PrintCombatResult(attacker, defender);
+        //            }
+        //            else if (defender.AttackType == AttackType.Thrust)
+        //            {
+        //                attacker.Health -= 10;
+        //                PrintCombatResult(defender, attacker);
+        //            }
+        //            break;
+        //        case AttackType.Slash:
+        //            if (defender.AttackType == AttackType.Thrust)
+        //            {
+        //                defender.Health -= 10;
+        //                PrintCombatResult(attacker, defender);
+        //            }
+        //            else if (defender.AttackType == AttackType.OverheadSwing)
+        //            {
+        //                attacker.Health -= 10;
+        //                PrintCombatResult(defender, attacker);
+        //            }
+        //            break;
+        //        case AttackType.Thrust:
+        //            if (defender.AttackType == AttackType.OverheadSwing)
+        //            {
+        //                defender.Health -= 10;
+        //                PrintCombatResult(attacker, defender);
+        //            }
+        //            else if (defender.AttackType == AttackType.Slash)
+        //            {
+        //                attacker.Health -= 10;
+        //                PrintCombatResult(defender, attacker);
+        //            }
+        //            break;
+        //    }
+        //}
 
-        void SetAttackType(Player player)
-        {
-            ConsoleKey key;
-            PrintCombatInstructions(player);
-            do
-            {
-                key = Handler.ReadKey().Key;
-            } while (Validator.IsKeyValid(key, ConsoleKey.O, ConsoleKey.S, ConsoleKey.T));
-            switch (key)
-            {
-                case ConsoleKey.O:
-                    player.AttackType = AttackType.OverheadSwing;
-                    break;
-                case ConsoleKey.S:
-                    player.AttackType = AttackType.Slash;
-                    break;
-                case ConsoleKey.T:
-                    player.AttackType = AttackType.Thrust;
-                    break;
-            }
-        }
+        //void SetAttackType(Player player)
+        //{
+        //    ConsoleKey key;
+        //    PrintCombatInstructions(player);
+        //    do
+        //    {
+        //        key = Handler.ReadKey().Key;
+        //    } while (Validator.IsKeyValid(key, ConsoleKey.O, ConsoleKey.S, ConsoleKey.T));
+        //    switch (key)
+        //    {
+        //        case ConsoleKey.O:
+        //            player.AttackType = AttackType.OverheadSwing;
+        //            break;
+        //        case ConsoleKey.S:
+        //            player.AttackType = AttackType.Slash;
+        //            break;
+        //        case ConsoleKey.T:
+        //            player.AttackType = AttackType.Thrust;
+        //            break;
+        //    }
+        //}
 
         public void GameLoop()
         {
@@ -509,20 +478,20 @@ namespace WarArena
                             break;
                     }
 
-                    switch (moveResult)
-                    {
-                        case MoveResult.Gold:
-                            player.Gold += GameMap[player.Coordinates.X, player.Coordinates.Y].Gold;
-                            GameMap[player.Coordinates.X, player.Coordinates.Y].Gold = 0;
-                            break;
-                        case MoveResult.Potion:
-                            HealthPotion potion = Potions
-                                .Single(p => p.Coordinates.X == player.Coordinates.X &&
-                                             p.Coordinates.Y == player.Coordinates.Y);
-                            player.Health += potion.Health;
-                            Potions.Remove(potion);
-                            break;
-                    }
+                    //switch (moveResult)
+                    //{
+                    //    case MoveResult.Gold:
+                    //        player.Gold += GameMap[player.Coordinates.X, player.Coordinates.Y].Gold;
+                    //        GameMap[player.Coordinates.X, player.Coordinates.Y].Gold = 0;
+                    //        break;
+                    //    case MoveResult.Potion:
+                    //        HealthPotion potion = Potions
+                    //            .Single(p => p.Coordinates.X == player.Coordinates.X &&
+                    //                         p.Coordinates.Y == player.Coordinates.Y);
+                    //        player.Health += potion.Health;
+                    //        Potions.Remove(potion);
+                    //        break;
+                    //}
                 }
 
                 IPlayersRepository repository = new DbPlayersRepository();
@@ -550,12 +519,7 @@ namespace WarArena
             {
                 var coords = GetRandomFreeCoords();
                 var health = RandomizationFunctions.GetRandomNumber(1, 100);
-                HealthPotion potion = new HealthPotion(health, coords);
-                if (Potions == null)
-                {
-                    Potions = new List<HealthPotion>();
-                }
-                Potions.Add(potion);
+                GameMap[coords.X, coords.Y].Health = health;
             }
         }
 
