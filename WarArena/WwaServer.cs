@@ -168,7 +168,8 @@ namespace WarArena
                 Player player1 = null;
                 Player player2 = null;
                 string message;
-                Tile[,] board;
+                IPlayersRepository repository = new DbPlayersRepository();
+                //Tile[,] board;
 
                 try
                 {
@@ -210,16 +211,27 @@ namespace WarArena
                         while (!ok)
                         {
                             ok = ReceiveRequest(sockets[0]);
-                            SendResponse(sockets[0], ok);
+                            foreach (Socket socket in sockets)
+                            {
+                                SendResponse(socket, ok);
+                            }
                         }
 
+                        PlayerModel model = Initiator.Mapper.Map<PlayerModel>(_game.Players[0]);
+                        repository.Update(model);
+                        
                         // Player 2.
                         ok = false;
                         while (!ok)
                         {
                             ok = ReceiveRequest(sockets[1]);
-                            SendResponse(sockets[1], ok);
+                            foreach (Socket socket in sockets)
+                            {
+                                SendResponse(socket, ok);
+                            }
                         }
+                        model = Initiator.Mapper.Map<PlayerModel>(_game.Players[0]);
+                        repository.Update(model);
                     }
                 }
                 catch (Exception exception)
