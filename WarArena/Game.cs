@@ -10,13 +10,13 @@ using WarArena.Repositories;
 
 namespace WarArena
 {
-    enum Direction
-    {
-        North,
-        South,
-        East,
-        West
-    }
+    //enum Direction
+    //{
+    //    North,
+    //    South,
+    //    East,
+    //    West
+    //}
 
     enum AttackType
     {
@@ -40,12 +40,10 @@ namespace WarArena
         public Game()
         {
             Handler = new IOHandler();
-            Validator = new Validator();
             GameMap = MapCreator.CreateEmptyMap();
             Players = new Player[2];
         }
         public IOHandler Handler { get; set; }
-        public Validator Validator { get; set; }
 
         public Player[] Players { get; set; }
 
@@ -413,72 +411,72 @@ namespace WarArena
                 defender.IsDead = true;
         }
 
-        public void Attack(Player attacker, Player defender)
-        {
-            SetAttackType(attacker);
-            SetAttackType(defender);
-            switch (attacker.AttackType)
-            {
-                case AttackType.OverheadSwing:
-                    if (defender.AttackType == AttackType.Slash)
-                    {
-                        defender.Health -= 10;
-                        PrintCombatResult(attacker, defender);
-                    }
-                    else if (defender.AttackType == AttackType.Thrust)
-                    {
-                        attacker.Health -= 10;
-                        PrintCombatResult(defender, attacker);
-                    }
-                    break;
-                case AttackType.Slash:
-                    if (defender.AttackType == AttackType.Thrust)
-                    {
-                        defender.Health -= 10;
-                        PrintCombatResult(attacker, defender);
-                    }
-                    else if (defender.AttackType == AttackType.OverheadSwing)
-                    {
-                        attacker.Health -= 10;
-                        PrintCombatResult(defender, attacker);
-                    }
-                    break;
-                case AttackType.Thrust:
-                    if (defender.AttackType == AttackType.OverheadSwing)
-                    {
-                        defender.Health -= 10;
-                        PrintCombatResult(attacker, defender);
-                    }
-                    else if (defender.AttackType == AttackType.Slash)
-                    {
-                        attacker.Health -= 10;
-                        PrintCombatResult(defender, attacker);
-                    }
-                    break;
-            }
-        }
+        //public void Attack(Player attacker, Player defender)
+        //{
+        //    SetAttackType(attacker);
+        //    SetAttackType(defender);
+        //    switch (attacker.AttackType)
+        //    {
+        //        case AttackType.OverheadSwing:
+        //            if (defender.AttackType == AttackType.Slash)
+        //            {
+        //                defender.Health -= 10;
+        //                PrintCombatResult(attacker, defender);
+        //            }
+        //            else if (defender.AttackType == AttackType.Thrust)
+        //            {
+        //                attacker.Health -= 10;
+        //                PrintCombatResult(defender, attacker);
+        //            }
+        //            break;
+        //        case AttackType.Slash:
+        //            if (defender.AttackType == AttackType.Thrust)
+        //            {
+        //                defender.Health -= 10;
+        //                PrintCombatResult(attacker, defender);
+        //            }
+        //            else if (defender.AttackType == AttackType.OverheadSwing)
+        //            {
+        //                attacker.Health -= 10;
+        //                PrintCombatResult(defender, attacker);
+        //            }
+        //            break;
+        //        case AttackType.Thrust:
+        //            if (defender.AttackType == AttackType.OverheadSwing)
+        //            {
+        //                defender.Health -= 10;
+        //                PrintCombatResult(attacker, defender);
+        //            }
+        //            else if (defender.AttackType == AttackType.Slash)
+        //            {
+        //                attacker.Health -= 10;
+        //                PrintCombatResult(defender, attacker);
+        //            }
+        //            break;
+        //    }
+        //}
 
-        void SetAttackType(Player player)
-        {
-            ConsoleKey key;
-            PrintCombatInstructions(player);
-            do
-            {
-                key = Handler.ReadKey().Key;
-            } while (Validator.IsKeyValid(key, ConsoleKey.O, ConsoleKey.S, ConsoleKey.T));
-            switch (key)
-            {
-                case ConsoleKey.O:
-                    player.AttackType = AttackType.OverheadSwing;
-                    break;
-                case ConsoleKey.S:
-                    player.AttackType = AttackType.Slash;
-                    break;
-                case ConsoleKey.T:
-                    player.AttackType = AttackType.Thrust;
-                    break;
-            }
-        }
+        //void SetAttackType(Player player)
+        //{
+        //    ConsoleKey key;
+        //    PrintCombatInstructions(player);
+        //    do
+        //    {
+        //        key = Handler.ReadKey().Key;
+        //    } while (Validator.IsKeyValid(key, ConsoleKey.O, ConsoleKey.S, ConsoleKey.T));
+        //    switch (key)
+        //    {
+        //        case ConsoleKey.O:
+        //            player.AttackType = AttackType.OverheadSwing;
+        //            break;
+        //        case ConsoleKey.S:
+        //            player.AttackType = AttackType.Slash;
+        //            break;
+        //        case ConsoleKey.T:
+        //            player.AttackType = AttackType.Thrust;
+        //            break;
+        //    }
+        //}
 
         public void GameLoop()
         {
