@@ -42,7 +42,7 @@ namespace WarArenaClient
         static List<Player> _players;
         static readonly IOHandler Handler = new IOHandler();
         static int? _playerId;
-        static bool _isChatting;
+        static Dictionary<int, string> _chattMessages  = new Dictionary<int, string>();
 
         static void ConnectToServer()
         {
@@ -147,7 +147,7 @@ namespace WarArenaClient
             }
             byte[] bytes = new byte[BUFFERLENGTH];
             socket.Receive(bytes);
-            string response = Encoding.UTF8.GetString(bytes);
+            string response = Encoding.UTF8.GetString(bytes).TrimEnd('\0');
             string[] responseParts = response.Split(' ');
             if (responseParts[0] == "WAP/1.0")
             {
@@ -245,6 +245,21 @@ namespace WarArenaClient
                     gameBoard[coordinates.X, coordinates.Y].Gold = gold;
                     gameBoard[coordinates.X, coordinates.Y].Health = health;
                     return ServerResponse.UpdateTile;
+                }
+                if (responseParts[1] == "MESSAGE")
+                {
+                    int id = int.Parse(responseParts[2]);
+                    string name = _players.SingleOrDefault(p => p.PlayerId == id)?.Name;
+                    if (_chattMessages.Count < 5)
+                    {
+                        _chattMessages.Add(_players.Count + 5 - _chattMessages.Count, name);
+                    }
+                    else
+                    {
+                        _chattMessages.Remove(_players.Count + 1);
+                        _chattMessages.Select(pair => new KeyValuePair<int, string>(pair.Key - 1, pair.Value))
+                            .ToDictionary(pair => pair.Key);
+                    }
                 }
                 if (responseParts[1] == "DENIED")
                 {
