@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics.Eventing;
 using System.Diagnostics.Eventing.Reader;
 using System.Linq;
@@ -12,6 +13,17 @@ using WarArena;
 
 namespace WarArenaClient
 {
+    [Flags]
+    enum ServerResponse
+    {
+        None,
+        YourTurn,
+        Sendstate,
+        NewPlayer,
+        UpdatePlayer,
+        UpdateTile,
+        Denied
+    }
     class WarArenaClient
     {
         const Int32 BUFFERLENGTH = 200;
@@ -26,10 +38,8 @@ namespace WarArenaClient
         static Tile[,] gameBoard = MapCreator.CreateEmptyMap();
         static List<Player> _players;
         static readonly IOHandler Handler = new IOHandler();
-        static string _playerName;
-        static int _playerId;
-        static string _opponentName;
-        static int _opponentId;
+        static int? _playerId;
+        static bool _isChatting;
 
         static void ConnectToServer()
         {
@@ -49,13 +59,13 @@ namespace WarArenaClient
             bytes = new byte[BUFFERLENGTH];
             socket.Receive(bytes);
             string response = Encoding.UTF8.GetString(bytes);
-            Console.WriteLine(response);
-            Console.ReadKey();
-            if (response == "Fel lösenord")
+            string[] responseParts = response.Split(' ');
+            if (responseParts[0] == "WAP/1.0" && responseParts[1] == "DENIED")
             {
+                Console.WriteLine("Wrong password");
+                Console.ReadKey();
                 return false;
             }
-            _playerName = name;
             return true;
         }
 
@@ -91,21 +101,26 @@ namespace WarArenaClient
                     ok = SendLoginRequest(data.Name, data.Password);
                 }
 
-                RecieveResponse();
-                _playerId = _players.Single(p => p.Name == _playerName).PlayerId;
-                _opponentId = _playerId == 0 ? 1 : 0;
-                _opponentName = _players[_opponentId].Name;
-                if (_playerId == 0) //Jag har första draget
-                {
-
-                }
-                else //Väntar på att motståndaren gör sitt drag
-                {
-
-                }
                 while (true)
                 {
-                    RecieveResponse();
+                    ServerResponse response = RecieveResponse();
+                    switch (response)
+                    {
+                        case ServerResponse.YourTurn:
+                            Handler.SetCursorPosition(0, gameBoard.GetLength(1) + _players.Count);
+                            Handler.Write("Your turn");
+                            ok = false;
+                            while (!ok)
+                            {
+                                ok = SendMoveRequest();
+                            }
+                            Handler.SetCursorPosition(0, gameBoard.GetLength(1) + _players.Count);
+                            Handler.Write("Waiting for other players to move");
+                            break;
+                        case ServerResponse.Sendstate | ServerResponse.UpdatePlayer:
+                            Display();
+                            break;
+                    }
                 }
             }
             catch (Exception exception)
@@ -121,62 +136,111 @@ namespace WarArenaClient
             Console.ReadLine();
         }
 
-        static void RecieveResponse()
+        static ServerResponse RecieveResponse()
         {
             if (_players == null)
             {
                 _players = new List<Player>();
             }
-
-            string response;
-            do
-            {
-                byte[] bytes = new byte[BUFFERLENGTH];
-                socket.Receive(bytes);
-                response = Encoding.UTF8.GetString(bytes);
-            } while (response == "BAD REQUEST");
+            byte[] bytes = new byte[BUFFERLENGTH];
+            socket.Receive(bytes);
+            string response = Encoding.UTF8.GetString(bytes);
             string[] responseParts = response.Split(' ');
-            if (responseParts[0] == "WAP/1.0" && responseParts[1] == "SENDSTATE")
+            if (responseParts[0] == "WAP/1.0")
             {
-                for (int i = 2; i < responseParts.Length; i++)
+                if (responseParts[1] == "YOURTURN")
                 {
-                    string[] itemInfos = responseParts[i].Split(',');
-                    switch (itemInfos[0])
+                    if (!_playerId.HasValue)
                     {
-                        case "Pl":
-                            string name = itemInfos[1];
-                            int playerId = int.Parse(itemInfos[2]);
-                            Coords coordinates = new Coords(int.Parse(itemInfos[3]), int.Parse(itemInfos[4]));
-                            int health = int.Parse(itemInfos[5]);
-                            int gold = int.Parse(itemInfos[6]);
-                            Player player = _players.SingleOrDefault(p => p.PlayerId == playerId);
-                            if (player == null)
-                            {
-                                player = new Player(name, health, 10, gold, coordinates);
-                                player.PlayerId = playerId;
-                                _players[playerId] = player;
-                            }
-                            else
-                            {
-                                player.Health = health;
-                                player.Gold = gold;
-                                player.Coordinates = coordinates;
-                            }
-                            break;
-                        case "P":
-                            coordinates = new Coords(int.Parse(itemInfos[1]), int.Parse(itemInfos[2]));
-                            health = int.Parse(itemInfos[3]);
-                            break;
-                        case "G":
-                            coordinates = new Coords(int.Parse(itemInfos[1]), int.Parse(itemInfos[2]));
-                            gold = int.Parse(itemInfos[3]);
-                            Tile tile = gameBoard[coordinates.X, coordinates.Y];
-                            tile.Gold = gold;
-                            break;
+                        _playerId = int.Parse(responseParts[2]);
                     }
+                    return ServerResponse.YourTurn;
                 }
 
+                if (responseParts[1] == "SENDSTATE")
+                {
+                    for (int i = 2; i < responseParts.Length; i++)
+                    {
+                        string[] itemInfos = responseParts[i].Split(',');
+                        switch (itemInfos[0])
+                        {
+                            case "Pl":
+                                string name = itemInfos[1];
+                                int playerId = int.Parse(itemInfos[2]);
+                                Coords coordinates = new Coords(int.Parse(itemInfos[3]), int.Parse(itemInfos[4]));
+                                int health = int.Parse(itemInfos[5]);
+                                int gold = int.Parse(itemInfos[6]);
+                                Player player = _players.SingleOrDefault(p => p.PlayerId == playerId);
+                                if (player == null)
+                                {
+                                    player = new Player(name, health, 10, gold, coordinates);
+                                    player.PlayerId = playerId;
+                                    _players[playerId] = player;
+                                }
+                                else
+                                {
+                                    player.Health = health;
+                                    player.Gold = gold;
+                                    player.Coordinates = coordinates;
+                                }
+                                break;
+                            case "P":
+                                coordinates = new Coords(int.Parse(itemInfos[1]), int.Parse(itemInfos[2]));
+                                health = int.Parse(itemInfos[3]);
+                                gameBoard[coordinates.X, coordinates.Y].Health = health;
+                                break;
+                            case "G":
+                                coordinates = new Coords(int.Parse(itemInfos[1]), int.Parse(itemInfos[2]));
+                                gold = int.Parse(itemInfos[3]);
+                                gameBoard[coordinates.X, coordinates.Y].Gold = gold;
+                                break;
+                        }
+                    }
+
+                    return ServerResponse.Sendstate;
+                }
+                if (responseParts[1] == "NEWPLAYER")
+                {
+                    string[] playerInfos = responseParts[2].Split(',');
+                    string name = playerInfos[0];
+                    int id = int.Parse(playerInfos[1]);
+                    Coords coordinates = new Coords(int.Parse(playerInfos[2]), int.Parse(playerInfos[3]));
+                    int health = int.Parse(playerInfos[4]);
+                    int gold = int.Parse(playerInfos[5]);
+                    var player = new Player(name, health, 10, gold, coordinates);
+                    player.PlayerId = id;
+                    _players.Add(player);
+                    return ServerResponse.NewPlayer;
+                }
+                if (responseParts[1] == "UPDATEPLAYER")
+                {
+                    string[] playerInfos = responseParts[2].Split(',');
+                    int id = int.Parse(playerInfos[0]);
+                    Coords coordinates = new Coords(int.Parse(playerInfos[1]), int.Parse(playerInfos[2]));
+                    int health = int.Parse(playerInfos[3]);
+                    int gold = int.Parse(playerInfos[4]);
+                    Player playerToUpdate = _players.Single(p => p.PlayerId == id);
+                    playerToUpdate.Coordinates = coordinates;
+                    playerToUpdate.Health = health;
+                    playerToUpdate.Gold = gold;
+                    return ServerResponse.UpdatePlayer;
+                }
+                if (responseParts[1] == "UPDATETILE")
+                {
+                    string[] tileInfos = responseParts[2].Split(',');
+                    Coords coordinates = new Coords(int.Parse(tileInfos[0]), int.Parse(tileInfos[1]));
+                    int gold = int.Parse(tileInfos[2]);
+                    int health = int.Parse(tileInfos[3]);
+                    gameBoard[coordinates.X, coordinates.Y].Gold = gold;
+                    gameBoard[coordinates.X, coordinates.Y].Health = health;
+                    return ServerResponse.UpdateTile;
+                }
+                if (responseParts[1] == "DENIED")
+                {
+                    return ServerResponse.Denied;
+                }
             }
+            return ServerResponse.None;
         }
 
         static bool SendMoveRequest()
@@ -211,7 +275,7 @@ namespace WarArenaClient
             return false;
         }
 
-        public void Display(bool isInTurn)
+        public static void Display()
         {
             Handler.Clear();
             PrintBoard();
@@ -220,20 +284,19 @@ namespace WarArenaClient
                 PrintHealthBar(currentPlayer.PlayerId, currentPlayer.Health);
             }
             PrintPlayerStats();
-            Handler.ChangeTextColor("Red");
-           
         }
 
-        private void PrintPlayerStats()
+        static void PrintPlayerStats()
         {
             Handler.ChangeTextColor("White");
-            Handler.SetCursorPosition(0, gameBoard.GetLength(1) + 1);
-            Handler.Write($"{_playerName}'s turn. Gold: {_players[_playerId].Gold}.");
-            Handler.SetCursorPosition(0, gameBoard.GetLength(1) + 2);
-            Handler.Write($"{_opponentName}'s turn. Gold: {_players[_opponentId].Gold}.");
+            for (int i = 0; i < _players.Count; i++)
+            {
+                Handler.SetCursorPosition(0, gameBoard.GetLength(1) + i + 1);
+                Handler.Write($"{_players[i].Name}. Gold: {_players[i].Gold}.");
+            }
         }
 
-        void PrintHealthBar(int playerId, int health)
+        static void PrintHealthBar(int playerId, int health)
         {
             Handler.ChangeTextColor("Black");
             Handler.SetCursorPosition(gameBoard.GetLength(0), playerId);
@@ -251,16 +314,28 @@ namespace WarArenaClient
             {
                 Handler.ChangeTextColor("Blue");
             }
+            else if (playerId == 3)
+            {
+                Handler.ChangeTextColor("Green");
+            }
+            else if (playerId == 4)
+            {
+                Handler.ChangeTextColor("Yellow");
+            }
+            else if (playerId == 5)
+            {
+                Handler.ChangeTextColor("Orange");
+            }
 
             Handler.SetCursorPosition(gameBoard.GetLength(0), playerId);
 
-            for (int i = 0; i < health/10; i++)
+            for (int i = 0; i < health / 10; i++)
             {
                 Handler.WriteBlock(Player.PlayerColors[playerId]);
             }
         }
 
-        public void PrintBoard()
+        public static void PrintBoard()
         {
             for (int y = 0; y < gameBoard.GetLength(1); y++)
             {
@@ -276,13 +351,18 @@ namespace WarArenaClient
             }
         }
 
-        void PrintTile(Tile tile)
+        static void PrintTile(Tile tile)
         {
             Handler.SetCursorPosition(tile.X, tile.Y);
             if (tile.HasGold)
             {
                 Handler.ChangeTextColor("Yellow");
                 Handler.Write('*');
+            }
+            else if (tile.HasHealth)
+            {
+                Handler.ChangeTextColor("Red");
+                Handler.Write("P");
             }
             else
             {
@@ -291,7 +371,7 @@ namespace WarArenaClient
             }
         }
 
-        void PrintPlayer(Player player)
+        static void PrintPlayer(Player player)
         {
             Handler.SetCursorPosition(player.Coordinates);
             Handler.ChangeTextColor(player.PlayerColor);

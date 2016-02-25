@@ -15,7 +15,7 @@ namespace WarArena
     }
     public class Player
     {
-        public static readonly string[] PlayerColors = { "Red", "Blue", "Green" };
+        public static readonly string[] PlayerColors = { "Red", "Blue", "Green", "Yellow", "Orange" };
 
         static int _playersCreated = 0;
         public static int PlayersCreated => _playersCreated;
