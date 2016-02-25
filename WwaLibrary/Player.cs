@@ -17,18 +17,15 @@ namespace WarArena
     {
         public static readonly string[] PlayerColors = { "Red", "Blue", "Green", "Yellow", "Orange" };
 
-        static int _playersCreated = 0;
-        public static int PlayersCreated => _playersCreated;
-
-        public Player(Coords startCoordinates)
+        public Player(int id, Coords startCoordinates)
         {
-            PlayerId = _playersCreated++;
+            PlayerId = id;
             Coordinates = startCoordinates;
         }
-        public Player(string name, int health, int attack, int gold, Coords startCoordinates)
+        public Player(int id, string name, int health, int attack, int gold, Coords startCoordinates)
         {
             Name = name;
-            PlayerId = _playersCreated++;
+            PlayerId = id;
             Health = health;
             Attack = attack;
             Coordinates = startCoordinates;
@@ -76,6 +73,11 @@ namespace WarArena
                 default:
                     return false;
             }
+        }
+
+        public override string ToString()
+        {
+            return $"{PlayerId},{Coordinates.X},{Coordinates.Y},{Health},{Gold}";
         }
     }
 }
