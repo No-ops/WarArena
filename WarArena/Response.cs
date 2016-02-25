@@ -27,6 +27,7 @@ namespace WarArena
 
         public static void SendNewPlayerResponses(List<Client> clients, WorldMap world, int id)
         {
+            var newPlayer = clients.Single(c => c.Player.PlayerId == id);
             foreach (var client in clients)
             {
                 if (client.Player.PlayerId == id)
@@ -38,7 +39,7 @@ namespace WarArena
                 }
                 else
                 {
-                    SendString($"WAP/1.0 NEWPLAYER {client.Player.Name},{client.Player};", client.Socket);
+                    SendString($"WAP/1.0 NEWPLAYER {newPlayer.Player.Name},{newPlayer.Player};", client.Socket);
                 }
             }
         }

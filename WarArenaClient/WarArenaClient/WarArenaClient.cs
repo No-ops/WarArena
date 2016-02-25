@@ -93,8 +93,8 @@ namespace WarArenaClient
 
         static void Main(string[] args)
         {
-            try
-            {
+            //try
+            //{
                 ConnectToServer();
                 LoginData data = Login();
                 SendLoginRequest(data.Name, data.Password);
@@ -149,16 +149,16 @@ namespace WarArenaClient
                         }
                     }
                 }
-            }
-            catch (Exception exception)
-            {
-                Console.WriteLine(exception.Message);
-                Console.ReadLine();
-            }
-            finally
-            {
-                socket?.Close();
-            }
+            //}
+            //catch (Exception exception)
+            //{
+            //    Console.WriteLine(exception.Message);
+            //    Console.ReadLine();
+            //}
+            //finally
+            //{
+            //    socket?.Close();
+            //}
             Console.WriteLine("Client shut down.");
             Console.ReadLine();
         }
