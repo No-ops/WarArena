@@ -63,5 +63,21 @@ namespace WarArena
             Console.Write(" ");
             Console.BackgroundColor = oldColor;
         }
+
+        public void ClearLine(int startColumn, int startRow)
+        {            
+            Console.SetCursorPosition(startColumn, startRow);
+            Console.Write(new string(' ', Console.WindowWidth));
+            Console.SetCursorPosition(startColumn, startRow);
+        }
+
+        public void ClearArea(int x1, int y1, int x2, int y2)
+        {
+            for (int i = y1; i <= y2; i++)
+            {
+                Console.SetCursorPosition(x1, i);
+                Console.Write(new string(' ', y1 + 1));
+            }            
+        }
     }
 }
