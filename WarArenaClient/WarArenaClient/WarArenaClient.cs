@@ -13,7 +13,7 @@ using WwaLibrary.World;
 
 namespace WarArenaClient
 {
-    [Flags]
+    //[Flags]
     enum ServerResponse
     {
         YourTurn,
@@ -23,7 +23,8 @@ namespace WarArenaClient
         RemovePlayer,
         UpdateTile,
         Message,
-        Denied
+        LoginDenied,
+        MoveDenied
     }
     class WarArenaClient
     {
@@ -45,30 +46,30 @@ namespace WarArenaClient
 
         static void ConnectToServer()
         {
-            Console.WriteLine("Welcome to BattlefieldClient!");
+            Handler.WriteLine("Welcome to WarArenaClient!");
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             socket.Connect(remoteEndPoint);
-            Console.WriteLine("Connected to server.");
-            Console.WriteLine("Local end point: " + socket.LocalEndPoint);
-            Console.WriteLine("Remote end point: " + socket.RemoteEndPoint);
+            Handler.WriteLine("Connected to server.");
+            Handler.WriteLine("Local end point: " + socket.LocalEndPoint);
+            Handler.WriteLine("Remote end point: " + socket.RemoteEndPoint);
         }
 
-        static bool SendLoginRequest(string name, string password)
+        static void SendLoginRequest(string name, string password)
         {
             string request = $"WAP/1.0 LOGIN {name} {password}";
             byte[] bytes = Encoding.UTF8.GetBytes(request);
             socket.Send(bytes);
-            bytes = new byte[BUFFERLENGTH];
-            socket.Receive(bytes);
-            string response = Encoding.UTF8.GetString(bytes);
-            string[] responseParts = response.Split(' ');
-            if (responseParts[0] == "WAP/1.0" && responseParts[1] == "DENIED")
-            {
-                Console.WriteLine("Wrong password");
-                Console.ReadKey();
-                return false;
-            }
-            return true;
+            //bytes = new byte[BUFFERLENGTH];
+            //socket.Receive(bytes);
+            //string response = Encoding.UTF8.GetString(bytes);
+            //string[] responseParts = response.Split(' ');
+            //if (responseParts[0] == "WAP/1.0" && responseParts[1] == "DENIED")
+            //{
+            //    Console.WriteLine("Wrong password");
+            //    Console.ReadKey();
+            //    return false;
+            //}
+            //return true;
         }
 
         public static LoginData Login()
@@ -96,13 +97,7 @@ namespace WarArenaClient
             {
                 ConnectToServer();
                 LoginData data = Login();
-                bool ok = false;
-
-                while (!ok)
-                {
-                    ok = SendLoginRequest(data.Name, data.Password);
-                }
-
+                SendLoginRequest(data.Name, data.Password);
                 while (true)
                 {
                     RecieveResponse();
@@ -114,7 +109,7 @@ namespace WarArenaClient
                             case ServerResponse.YourTurn:
                                 Handler.ClearLine(0, gameBoard.GetLength(1) + _players.Count);
                                 Handler.Write("Your turn", 0, gameBoard.GetLength(1) + _players.Count);
-                                ok = false;
+                                bool ok = false;
                                 while (!ok)
                                 {
                                     ok = SendMoveRequest();
@@ -122,12 +117,34 @@ namespace WarArenaClient
                                 Handler.ClearLine(0, gameBoard.GetLength(1) + _players.Count);
                                 Handler.Write("Waiting for other players to move", 0, gameBoard.GetLength(1) + _players.Count);
                                 break;
-                            case ServerResponse.Sendstate | ServerResponse.UpdatePlayer | ServerResponse.RemovePlayer:
+                            case ServerResponse.Sendstate:
+                                Display();
+                                break;
+                            case ServerResponse.UpdatePlayer:
+                                Display();
+                                break;
+                            case ServerResponse.RemovePlayer:
                                 Display();
                                 break;
                             case ServerResponse.Message:
                                 ClearChattMessages();
                                 PrintChattMessages();
+                                break;
+                            case ServerResponse.LoginDenied:
+                                Handler.Clear();
+                                Handler.WriteLine("Wrong password!");
+                                Handler.ReadKey();
+                                data = Login();
+                                SendLoginRequest(data.Name, data.Password);
+                                break;
+                            case ServerResponse.MoveDenied:
+                                Handler.ClearLine(0, gameBoard.GetLength(1) + _players.Count);
+                                Handler.Write("Your turn", 0, gameBoard.GetLength(1) + _players.Count);
+                                ok = false;
+                                while (!ok)
+                                {
+                                    ok = SendMoveRequest();
+                                }
                                 break;
                         }
                     }
@@ -269,7 +286,14 @@ namespace WarArenaClient
                     }
                     if (responseParts[1] == "DENIED")
                     {
-                        _responseQueue.Enqueue(ServerResponse.Denied);
+                        if (responseParts[2] == "LOGIN")
+                        {
+                            _responseQueue.Enqueue(ServerResponse.LoginDenied);
+                        }                            
+                        else if (responseParts[2] == "MOVE")
+                        {
+                            _responseQueue.Enqueue(ServerResponse.MoveDenied);
+                        }
                     }
                 }
             }
