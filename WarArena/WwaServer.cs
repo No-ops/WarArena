@@ -113,6 +113,7 @@ namespace WarArena
                             var buffer = new byte[BUFFERLENGTH];
                             var bytesReceived = connection.Receive(buffer);
                             var command = encoding.GetString(buffer, 0, bytesReceived);
+                            command = command.TrimEnd(';');
                             string[] parts;
                             // Ignore any command that is not LOGIN
                             if (command.StartsWith("WAP/1.0 LOGIN") && (parts = command.Split(' ')).Length == 4)
