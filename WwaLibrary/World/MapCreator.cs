@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using WarArena.Utilities;
+using WwaLibrary.World;
 
 namespace WarArena.World
 {

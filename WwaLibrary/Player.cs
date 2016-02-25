@@ -74,5 +74,10 @@ namespace WarArena
                     return false;
             }
         }
+
+        public override string ToString()
+        {
+            return $"{PlayerId},{Coordinates.X},{Coordinates.Y},{Health},{Gold}";
+        }
     }
 }

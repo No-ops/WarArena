@@ -4,7 +4,6 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using WarArena.World;
 using WarArena.Models;
 using WarArena.Repositories;
 
@@ -50,162 +49,32 @@ namespace WarArena
 
     static class WWaServer
     {
+        static IPlayersRepository _repository = new DbPlayersRepository();
         const Int32 LISTENERBACKLOG = 100;
         const Int32 BUFFERLENGTH = 500;
         const Int32 PORT = 8001;
-        static Game _game = new Game();
         static IPAddress ipAddress = IPAddress.Any;
         static IPEndPoint localEndPoint = new IPEndPoint(ipAddress, PORT);
         static UTF8Encoding encoding = new UTF8Encoding();
-
-        static Boolean ReceiveStartRequest(Socket socket, out Player player,
-            out string message)
-        {
-            _game.GameMap = MapCreator.CreateEmptyMap();
-
-            Byte[] bufferIn = new Byte[BUFFERLENGTH];
-            socket.Receive(bufferIn);
-            String request = encoding.GetString(bufferIn).TrimEnd('\0').Trim();
-
-            int threadId = Thread.CurrentThread.ManagedThreadId;
-            Console.WriteLine(threadId + ": Received request from " + socket.RemoteEndPoint + ": " + request);
-            var tokens = request.Split(' ');
-            bool ok = tokens[0] == "WAP/1.0" &&
-                      tokens[1] == "LOGIN";
-            string name = tokens[2];
-            string password = tokens[3];
-            IPlayersRepository repository = new DbPlayersRepository();
-            PlayerModel model = repository.GetByName(name);
-            var game = new Game();
-            if (model == null) //Finns inte i databasen
-            {
-                player = new Player(name, 100, 10, 0, game.GetRandomFreeCoords());
-                model = Initiator.Mapper.Map<PlayerModel>(player);
-                model.Password = password;
-                repository.Add(model);
-                message = "En ny spelare har skapats";
-
-            }
-            else //Finns i databasen
-            {
-                if (model.Password != password)
-                {
-                    message = "Fel lösenord";
-                    player = null;
-                    return false;
-                }
-                player = Initiator.Mapper.Map<Player>(model);
-                player.Coordinates = game.GetRandomFreeCoords();
-                message = "En befintlig spelare har hämtats.";
-            }
-            return ok;
-        }
-
-        static bool ReceiveRequest(Socket socket)
-        {
-            int threadId = Thread.CurrentThread.ManagedThreadId;
-            var bufferIn = new byte[BUFFERLENGTH];
-            socket.Receive(bufferIn);
-            string request = encoding.GetString(bufferIn).TrimEnd('\0').Trim();
-            Console.WriteLine(threadId + ": Received request from " + socket.RemoteEndPoint + ": " + request);
-            string[] requestParts = request.Split(' ');
-            if (requestParts[0] == "WAP/1.0" && requestParts[1] == "MOVE")
-            {
-                Player player = _game.Players.SingleOrDefault(p => p.Name == requestParts[2]);
-                if (player == null)
-                {
-                    return false;
-                }
-                switch (requestParts[3])
-                {
-                    case "UP":
-                        _game.TakeAction(player, ConsoleKey.UpArrow);
-                        break;
-                    case "DOWN":
-                        _game.TakeAction(player, ConsoleKey.DownArrow);
-                        break;
-                    case "LEFT":
-                        _game.TakeAction(player, ConsoleKey.LeftArrow);
-                        break;
-                    case "RIGHT":
-                        _game.TakeAction(player, ConsoleKey.RightArrow);
-                        break;
-                }
-                return true;
-            }
-            return false;
-        }
-
-        static void SendResponse(Socket socket, bool ok)
-        {
-            int threadId = Thread.CurrentThread.ManagedThreadId;
-            var responseBuilder = new StringBuilder();
-            if (ok)
-            {
-                responseBuilder.Append("WAP/1.0 SENDSTATE ");
-                foreach (Player player in _game.Players)
-                {
-                    responseBuilder.Append(
-                        $"Pl,{player.Name},{player.PlayerId},{player.Coordinates.X},{player.Coordinates.Y},{player.Health},{player.Gold} ");
-                }
-                //foreach (HealthPotion potion in _game.Potions)
-                //{
-                //    responseBuilder.Append(
-                //        $"P,{potion.Coordinates.X},{potion.Coordinates.Y},{potion.Health} ");
-                //}
-                foreach (Tile tile in _game.GameMap)
-                {
-                    if (tile.HasGold)
-                    {
-                        responseBuilder.Append($"G,{tile.X},{tile.Y},{tile.Gold}");
-                    }
-                }
-                string response = responseBuilder.ToString();
-                byte[] bytes = Encoding.UTF8.GetBytes(response);
-                socket.Send(bytes);
-                Console.WriteLine(threadId + ": Sent response to " + socket.RemoteEndPoint + ": " + response);
-            }
-            else
-            {
-                byte[] bytes = Encoding.UTF8.GetBytes("BAD REQUEST");
-                socket.Send(bytes);
-            }
-        }
-
-        static void PlayWarArena(Object parameter)
-        {
-            Socket[] sockets = (Socket[])parameter;
-            var players = new List<Player>();
-            IPlayersRepository repository = new DbPlayersRepository();
-        }
-
-        static void SendStartResponse(Socket socket, string message)
-        {
-            int threadId = Thread.CurrentThread.ManagedThreadId;
-            string response = $"WAP/1.0 MESSAGE {message}";
-            byte[] bytes = Encoding.UTF8.GetBytes($"WAP/1.0 MESSAGE {message}");
-            socket.Send(bytes);
-            Console.WriteLine(threadId + ": Sent response to " + socket.RemoteEndPoint + ": " + response);
-        }
 
         static void Main()
         {
             Console.WriteLine("Initiating...");
             Initiator.AutoMapperConfig();
             Console.WriteLine("Creating new game...");
-            var game = new Game();
+            var world = new WorldMap();
             Console.WriteLine("Starting server...");
             Socket listeningSocket = null;
             var clients = new List<Client>();
-            var messageQueue = new Queue<Message>();
+            var responseQueue = new Queue<Response>();
             var unconfirmedConnections = new List<Socket>();
+            var currentPlayerIndex = 0;
             try
             {
                 listeningSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 listeningSocket.Bind(localEndPoint);
                 listeningSocket.Listen(LISTENERBACKLOG);
-                Console.WriteLine(": WWAServer is listening.");
-                Console.WriteLine(": Local end point: " + listeningSocket.LocalEndPoint);
+                Console.WriteLine($"WWAServer is listening on {listeningSocket.LocalEndPoint}");
                 while (true)
                 {
                     // Check for dead connections
@@ -224,9 +93,11 @@ namespace WarArena
                         if (IsDisconnected(clients[i].Socket))
                         {
                             Console.WriteLine($"{clients[i].Socket.RemoteEndPoint} ({clients[i].Player.Name}) disconnected.");
-                            messageQueue.Enqueue(new Message($"REMOVEPLAYER {clients[i].Player.PlayerId}", Message.RecipientType.All, 0));
+                            responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.REMOVEPLAYER, IdParam = clients[i].Player.PlayerId });
                             clients[i].Socket.Close();
                             clients.RemoveAt(i--);
+                            if (clients.Count <= currentPlayerIndex)
+                                currentPlayerIndex = 0;
                         }
                     }
 
@@ -245,19 +116,148 @@ namespace WarArena
                                 // Ignore any command that is not LOGIN
                                 if (command.StartsWith("WAP/1.0 LOGIN") && (parts = command.Split(' ')).Length == 4)
                                 {
-
+                                    var name = parts[2];
+                                    var password = parts[3];
+                                    var model = _repository.GetByName(parts[2]);
+                                    Player player = null;
+                                    if (model == null) //Finns inte i databasen
+                                    {
+                                        player = new Player(GetFirstFreeId(clients), name, 100, 10, 0, world.GetRandomFreeCoords(clients));
+                                        model = Initiator.Mapper.Map<PlayerModel>(player);
+                                        model.Password = password;
+                                        _repository.Add(model);
+                                        responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.NEWPLAYER, IdParam = player.PlayerId });
+                                        clients.Add(new Client { Player = player, Socket = connection });
+                                        unconfirmedConnections.RemoveAt(i--);
+                                        if (clients.Count == 2)
+                                            responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.YOURTURN, IdParam = clients[currentPlayerIndex].Player.PlayerId });
+                                        Console.WriteLine($"{connection.RemoteEndPoint} created player {player.Name}");
+                                    }
+                                    else //Finns i databasen
+                                    {
+                                        if (model.Password == password)
+                                        {
+                                            player = Initiator.Mapper.Map<Player>(model);
+                                            player.Coordinates = world.GetRandomFreeCoords(clients);
+                                            player.PlayerId = GetFirstFreeId(clients);
+                                            responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.NEWPLAYER, IdParam = player.PlayerId });
+                                            clients.Add(new Client { Player = player, Socket = connection });
+                                            unconfirmedConnections.RemoveAt(i--);
+                                            if (clients.Count == 2)
+                                                responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.YOURTURN, IdParam = clients[currentPlayerIndex].Player.PlayerId });
+                                            Console.WriteLine($"{connection.RemoteEndPoint} logged in as {player.Name}");
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine($"{connection.RemoteEndPoint} failed password for {player.Name}");
+                                            responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.DENIED, Socket = connection, StringParam = "LOGIN Wrong password" });
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
 
-                    if (clients.Count < 5 && listeningSocket.Available != 0)
+                    // Accept new connections
+                    if (unconfirmedConnections.Count < 20 && listeningSocket.Poll(1000, SelectMode.SelectRead))
                     {
                         var newConnection = listeningSocket.Accept();
-                        Console.WriteLine(": New connection accepted.");
-                        Console.WriteLine(": Local end point: " + newConnection.LocalEndPoint);
-                        Console.WriteLine(": Remote end point: " + newConnection.RemoteEndPoint);
+                        Console.WriteLine($"New connection accepted from {newConnection.RemoteEndPoint}");
                         unconfirmedConnections.Add(newConnection);
+                    }
+
+                    // Get player commands
+                    foreach (var client in clients)
+                    {
+                        if (client.Socket.Available > 0)
+                        {
+                            var buffer = new byte[BUFFERLENGTH];
+                            var bytesReceived = client.Socket.Receive(buffer);
+                            var command = encoding.GetString(buffer, 0, bytesReceived);
+                            string[] parts = command.Split(' ');
+                            if (parts.Length < 2 || parts[0] != "WAP/1.0")
+                                continue;
+                            switch (parts[1])
+                            {
+                                case "MOVE":
+                                    if (clients.IndexOf(client) != currentPlayerIndex || clients.Count < 2)
+                                    {
+                                        responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.DENIED, Socket = client.Socket, StringParam = "MOVE Not your turn" });
+                                    }
+                                    else if (parts.Length < 3)
+                                    {
+                                        responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.DENIED, Socket = client.Socket, StringParam = "MOVE invalid direction" });
+                                    }
+                                    else
+                                    {
+                                        var result = world.MovePlayer(client.Player, parts[2], clients);
+                                        switch (result.MoveResult)
+                                        {
+                                            case MoveResult.Fail:
+                                                responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.DENIED, Socket = client.Socket, StringParam = "MOVE You cannot move that way" });
+                                                break;
+                                            case MoveResult.Success:
+                                                responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.UPDATEPLAYER, IdParam = client.Player.PlayerId });
+                                                break;
+                                            case MoveResult.Gold:
+                                            case MoveResult.Potion:
+                                                responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.UPDATETILE, StringParam = world.GameMap[client.Player.Coordinates.X, client.Player.Coordinates.Y].ToString() });
+                                                responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.UPDATEPLAYER, IdParam = client.Player.PlayerId });
+                                                break;
+                                            case MoveResult.Player:
+                                                if (result.Player.Health <= 0)
+                                                {
+                                                    world.GameMap[result.Player.Coordinates.X, result.Player.Coordinates.Y].Gold = result.Player.Gold;
+                                                    result.Player.Gold = 0;
+                                                    result.Player.Coordinates = world.GetRandomFreeCoords(clients);
+                                                    result.Player.Health = 100;
+                                                    result.Player.IsDead = false;
+                                                }
+                                                responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.UPDATEPLAYER, IdParam = result.Player.PlayerId });
+                                                break;
+                                        }
+                                        if (result.MoveResult != MoveResult.Fail)
+                                        {
+                                            if (++currentPlayerIndex >= clients.Count)
+                                                currentPlayerIndex = 0;
+                                            responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.YOURTURN, IdParam = clients[currentPlayerIndex].Player.PlayerId });
+                                        }
+                                    }
+                                    break;
+                            }
+                        }
+                    }
+
+                    // Fire off responses
+                    while (responseQueue.Count > 0)
+                    {
+                        var response = responseQueue.Dequeue();
+                        switch (response.ResponseType)
+                        {
+                            case Response.MessageType.NEWPLAYER:
+                                Response.SendNewPlayerResponses(clients, world, response.IdParam);
+                                break;
+
+                            case Response.MessageType.DENIED:
+                                Response.SendDeniedResponse(clients, response.Socket, response.StringParam);
+                                break;
+
+                            case Response.MessageType.REMOVEPLAYER:
+                                Response.SendRemovePlayerResponse(clients, response.IdParam);
+                                break;
+
+                            case Response.MessageType.UPDATETILE:
+                                Response.SendUpdateTile(clients, response.StringParam);
+                                break;
+
+                            case Response.MessageType.YOURTURN:
+                                Response.SendYourTurn(clients, response.IdParam);
+                                break;
+
+                            case Response.MessageType.UPDATEPLAYER:
+                                Response.SendUpdatePlayer(clients, response.IdParam);
+                                break;
+                        }
                     }
                 }
             }
@@ -270,6 +270,19 @@ namespace WarArena
             {
                 listeningSocket?.Close();
             }
+        }
+
+        private static int GetFirstFreeId(List<Client> clients)
+        {
+            int counter = -1;
+            while (++counter < int.MaxValue)
+            {
+                if (!clients.Any(c => c.Player.PlayerId == counter))
+                    return counter;
+            }
+
+            // If we're here something has gone very wrong
+            throw new IndexOutOfRangeException("More clients than ints");
         }
 
         private static bool IsDisconnected(Socket socket)

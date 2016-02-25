@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
-namespace WarArena.World
+namespace WwaLibrary.World
 {
     [Serializable]
     public class Tile
@@ -46,5 +43,10 @@ namespace WarArena.World
         public bool HasGold => Gold > 0;
         public int Health { get; set; }
         public bool HasHealth => Gold > 0;
+
+        public override string ToString()
+        {
+            return $"{X},{Y},{Gold},{Health}";
+        }
     }
 }

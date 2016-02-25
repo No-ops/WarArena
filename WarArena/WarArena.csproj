@@ -71,16 +71,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Game.cs" />
     <Compile Include="Initiator.cs" />
-    <Compile Include="Message.cs" />
+    <Compile Include="MoveResultWrapper.cs" />
+    <Compile Include="Response.cs" />
     <Compile Include="Models\PlayerModel.cs" />
     <Compile Include="Models\WarArenaContext.cs" />
-    <Compile Include="PlayerClient.cs" />
+    <Compile Include="Client.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Repositories\DbPlayersRepository.cs" />
     <Compile Include="Repositories\IPlayersRepository.cs" />
+    <Compile Include="WorldMap.cs" />
     <Compile Include="WwaServer.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -105,10 +106,7 @@
       <Name>WwaLibrary</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Utilities\" />
-    <Folder Include="World\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
