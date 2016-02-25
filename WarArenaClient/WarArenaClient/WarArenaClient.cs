@@ -40,7 +40,7 @@ namespace WarArenaClient
         static List<Player> _players;
         static readonly IOHandler Handler = new IOHandler();
         static int? _playerId;
-        static Dictionary<int, string> _chattMessages  = new Dictionary<int, string>();
+        static List<string> _chattMessages = new List<string>();
         static Queue<ServerResponse> _responseQueue = new Queue<ServerResponse>();
 
         static void ConnectToServer()
@@ -125,8 +125,12 @@ namespace WarArenaClient
                             case ServerResponse.Sendstate | ServerResponse.UpdatePlayer | ServerResponse.RemovePlayer:
                                 Display();
                                 break;
+                            case ServerResponse.Message:
+                                ClearChattMessages();
+                                PrintChattMessages();
+                                break;
                         }
-                    }                  
+                    }
                 }
             }
             catch (Exception exception)
@@ -253,27 +257,22 @@ namespace WarArenaClient
                         gameBoard[coordinates.X, coordinates.Y].Health = health;
                         _responseQueue.Enqueue(ServerResponse.UpdateTile);
                     }
-                    //if (responseParts[1] == "MESSAGE")
-                    //{
-                    //    int id = int.Parse(responseParts[2]);
-                    //    string name = _players.SingleOrDefault(p => p.PlayerId == id)?.Name;
-                    //    if (_chattMessages.Count < 5)
-                    //    {
-                    //        _chattMessages.Add(_players.Count + 5 - _chattMessages.Count, name);
-                    //    }
-                    //    else
-                    //    {
-                    //        _chattMessages.Remove(_players.Count + 1);
-                    //        _chattMessages.Select(pair => new KeyValuePair<int, string>(pair.Key - 1, pair.Value))
-                    //            .ToDictionary(pair => pair.Key);
-                    //    }
-                    //}
+                    if (responseParts[1] == "MESSAGE")
+                    {
+                        int id = int.Parse(responseParts[2]);
+                        string name = _players.SingleOrDefault(p => p.PlayerId == id)?.Name;
+                        if (_chattMessages.Count == 5)
+                        {
+                            _chattMessages.RemoveAt(0);
+                        }
+                        _chattMessages.Add($"{name}: {responseParts[3]}");
+                    }
                     if (responseParts[1] == "DENIED")
                     {
                         _responseQueue.Enqueue(ServerResponse.Denied);
                     }
                 }
-            }            
+            }
         }
 
         static bool SendMoveRequest()
@@ -431,6 +430,22 @@ namespace WarArenaClient
             for (int i = 0; i < _players.Count; i++)
             {
                 Handler.Write($"{_players[i].Name}. Gold: {_players[i].Gold}.", 0, gameBoard.GetLength(1) + i + 1);
+            }
+        }
+
+        static void PrintChattMessages()
+        {
+            for (int i = 0; i < _chattMessages.Count; i++)
+            {
+                Handler.Write(_chattMessages[i], gameBoard.GetLength(0), _players.Count + i + 1);
+            }
+        }
+
+        static void ClearChattMessages()
+        {
+            for (int i = 0; i < _chattMessages.Count; i++)
+            {
+                Handler.ClearLine(gameBoard.GetLength(0), _players.Count + i + 1);
             }
         }
     }
