@@ -22,6 +22,7 @@ namespace WarArenaClient
         Sendstate,
         NewPlayer,
         UpdatePlayer,
+        RemovePlayer,
         UpdateTile,
         Message,
         Denied
@@ -119,7 +120,7 @@ namespace WarArenaClient
                             Handler.ClearLine(0, gameBoard.GetLength(1) + _players.Count);
                             Handler.Write("Waiting for other players to move", 0, gameBoard.GetLength(1) + _players.Count);
                             break;
-                        case ServerResponse.Sendstate | ServerResponse.UpdatePlayer:
+                        case ServerResponse.Sendstate | ServerResponse.UpdatePlayer | ServerResponse.RemovePlayer:
                             Display();
                             break;
                     }
@@ -225,6 +226,15 @@ namespace WarArenaClient
                     playerToUpdate.Health = health;
                     playerToUpdate.Gold = gold;
                     return ServerResponse.UpdatePlayer;
+                }
+                if (responseParts[1] == "REMOVEPLAYER")
+                {
+                    int id = int.Parse(responseParts[2]);
+                    Player playerToRemove = _players.SingleOrDefault(p => p.PlayerId == id);
+                    if (playerToRemove != null)
+                    {
+                        _players.Remove(playerToRemove);                        
+                    }
                 }
                 if (responseParts[1] == "UPDATETILE")
                 {
