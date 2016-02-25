@@ -50,12 +50,12 @@ namespace WarArena
     static class WWaServer
     {
         static IPlayersRepository _repository = new DbPlayersRepository();
-        const Int32 LISTENERBACKLOG = 100;
-        const Int32 BUFFERLENGTH = 500;
+        public const Int32 LISTENERBACKLOG = 100;
+        public const Int32 BUFFERLENGTH = 500;
         const Int32 PORT = 8001;
         static IPAddress ipAddress = IPAddress.Any;
         static IPEndPoint localEndPoint = new IPEndPoint(ipAddress, PORT);
-        static UTF8Encoding encoding = new UTF8Encoding();
+        public static UTF8Encoding encoding = new UTF8Encoding();
 
         static void Main()
         {
@@ -82,6 +82,7 @@ namespace WarArena
                 {
                     if (IsDisconnected(unconfirmedConnections[i]))
                     {
+                        Console.WriteLine($"DEBUG: Avalible: {unconfirmedConnections[i].Available} - Poll: {unconfirmedConnections[i].Poll(1000, SelectMode.SelectRead)}");
                         Console.WriteLine($"{unconfirmedConnections[i].RemoteEndPoint} disconnected.");
                         unconfirmedConnections[i].Close();
                         unconfirmedConnections.RemoveAt(i--);
@@ -287,7 +288,7 @@ namespace WarArena
 
         private static bool IsDisconnected(Socket socket)
         {
-            return socket.Available == 0 && socket.Poll(1000, SelectMode.SelectRead);
+            return socket.Poll(1000, SelectMode.SelectRead) && socket.Available == 0;
         }
     }
 }

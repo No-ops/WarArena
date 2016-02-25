@@ -20,7 +20,8 @@ namespace WarArena
 
         private static void SendString(string message, Socket socket)
         {
-            
+            var buffer = WWaServer.encoding.GetBytes(message);
+            socket.Send(buffer);
         }
 
         public static void SendNewPlayerResponses(List<Client> clients, WorldMap world, int id)
