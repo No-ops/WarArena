@@ -175,6 +175,7 @@ namespace WarArena
                         var buffer = new byte[BUFFERLENGTH];
                         var bytesReceived = client.Socket.Receive(buffer);
                         var command = encoding.GetString(buffer, 0, bytesReceived);
+                        command = command.TrimEnd(';');
                         string[] parts = command.Split(' ');
                         if (parts.Length < 2 || parts[0] != "WAP/1.0")
                             continue;
@@ -225,6 +226,16 @@ namespace WarArena
                                     }
                                 }
                                 break;
+                            case "MESSAGE":
+                                if (parts.Length < 3)
+                                {
+                                    responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.DENIED, Socket = client.Socket, StringParam = "MESSAGE Malformed message" });
+                                }
+                                else
+                                {
+                                    responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.MESSAGE, IdParam = client.Player.PlayerId, StringParam = command.Substring("WAP/1.0 MESSAGE ".Length) });
+                                }
+                                break;
                         }
                     }
                 }
@@ -257,6 +268,10 @@ namespace WarArena
 
                         case Response.MessageType.UPDATEPLAYER:
                             Response.SendUpdatePlayer(clients, response.IdParam);
+                            break;
+
+                        case Response.MessageType.MESSAGE:
+                            Response.SendMessage(clients, response.IdParam, response.StringParam);
                             break;
                     }
                 }

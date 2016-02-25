@@ -11,7 +11,7 @@ namespace WarArena
     {
         public enum MessageType
         {
-            NEWPLAYER, REMOVEPLAYER, UPDATEPLAYER, UPDATETILE, YOURTURN, DENIED, 
+            NEWPLAYER, REMOVEPLAYER, UPDATEPLAYER, UPDATETILE, YOURTURN, DENIED, INFO, MESSAGE
         }
         public string StringParam { get; set; }
         public MessageType ResponseType { get; set; }
@@ -21,7 +21,7 @@ namespace WarArena
         private static void SendString(string message, Socket socket)
         {
             var buffer = WWaServer.encoding.GetBytes(message);
-            Console.WriteLine($"Send: {message}\nTo: {socket.RemoteEndPoint}");
+            //Console.WriteLine($"Send: {message}\nTo: {socket.RemoteEndPoint}");
             socket.Send(buffer);
         }
 
@@ -97,6 +97,14 @@ namespace WarArena
             foreach (var client in clients)
             {
                 SendString($"WAP/1.0 UPDATEPLAYER {updatedPlayer.Player};", client.Socket);
+            }
+        }
+
+        public static void SendMessage(List<Client> clients, int id, string message)
+        {
+            foreach (var client in clients)
+            {
+                SendString($"WAP/1.0 MESSAGE {id} {message};", client.Socket);
             }
         }
     }
