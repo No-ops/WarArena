@@ -21,7 +21,9 @@ namespace WarArenaClient
         Sendstate,
         NewPlayer,
         UpdatePlayer,
+        RemovePlayer,
         UpdateTile,
+        Message,
         Denied
     }
     class WarArenaClient
@@ -108,17 +110,16 @@ namespace WarArenaClient
                     {
                         case ServerResponse.YourTurn:
                             Handler.ClearLine(0, gameBoard.GetLength(1) + _players.Count);
-                            Handler.SetCursorPosition(0, gameBoard.GetLength(1) + _players.Count);
-                            Handler.Write("Your turn");
+                            Handler.Write("Your turn", 0, gameBoard.GetLength(1) + _players.Count);
                             ok = false;
                             while (!ok)
                             {
                                 ok = SendMoveRequest();
                             }
-                            Handler.SetCursorPosition(0, gameBoard.GetLength(1) + _players.Count);
-                            Handler.Write("Waiting for other players to move");
+                            Handler.ClearLine(0, gameBoard.GetLength(1) + _players.Count);
+                            Handler.Write("Waiting for other players to move", 0, gameBoard.GetLength(1) + _players.Count);
                             break;
-                        case ServerResponse.Sendstate | ServerResponse.UpdatePlayer:
+                        case ServerResponse.Sendstate | ServerResponse.UpdatePlayer | ServerResponse.RemovePlayer:
                             Display();
                             break;
                     }
@@ -225,6 +226,15 @@ namespace WarArenaClient
                     playerToUpdate.Gold = gold;
                     return ServerResponse.UpdatePlayer;
                 }
+                if (responseParts[1] == "REMOVEPLAYER")
+                {
+                    int id = int.Parse(responseParts[2]);
+                    Player playerToRemove = _players.SingleOrDefault(p => p.PlayerId == id);
+                    if (playerToRemove != null)
+                    {
+                        _players.Remove(playerToRemove);                        
+                    }
+                }
                 if (responseParts[1] == "UPDATETILE")
                 {
                     string[] tileInfos = responseParts[2].Split(',');
@@ -279,10 +289,12 @@ namespace WarArenaClient
         {
             ClearBoard();
             PrintBoard();
+            ClearHealthBars();
             foreach (var currentPlayer in _players)
             {
                 PrintHealthBar(currentPlayer.PlayerId, currentPlayer.Health);
             }
+            ClearPlayerStats();
             PrintPlayerStats();
         }
 
@@ -291,20 +303,19 @@ namespace WarArenaClient
             Handler.ChangeTextColor("White");
             for (int i = 0; i < _players.Count; i++)
             {
-                Handler.SetCursorPosition(0, gameBoard.GetLength(1) + i + 1);
-                Handler.Write($"{_players[i].Name}. Gold: {_players[i].Gold}.");
+                Handler.Write($"{_players[i].Name}. Gold: {_players[i].Gold}.", 0, gameBoard.GetLength(1) + i + 1);
             }
         }
 
         static void PrintHealthBar(int playerId, int health)
         {
-            Handler.ChangeTextColor("Black");
-            Handler.SetCursorPosition(gameBoard.GetLength(0), playerId);
+            //Handler.ChangeTextColor("Black");
+            //Handler.SetCursorPosition(gameBoard.GetLength(0), playerId);
 
-            for (int i = 0; i < 10; i++)
-            {
-                Handler.Write("");
-            }
+            //for (int i = 0; i < 10; i++)
+            //{
+            //    Handler.Write("");
+            //}
 
             if (playerId == 1)
             {
@@ -393,7 +404,11 @@ namespace WarArenaClient
 
         static void ClearPlayerStats()
         {
-            
+            Handler.ChangeTextColor("Black");
+            for (int i = 0; i < _players.Count; i++)
+            {
+                Handler.Write($"{_players[i].Name}. Gold: {_players[i].Gold}.", 0, gameBoard.GetLength(1) + i + 1);
+            }
         }
     }
 }
