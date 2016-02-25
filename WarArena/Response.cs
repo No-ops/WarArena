@@ -94,7 +94,7 @@ namespace WarArena
             var updatedPlayer = clients.Single(c => c.Player.PlayerId == id);
             foreach (var client in clients)
             {
-                SendString($"WAP/1.0 UPDATEPLAYER {updatedPlayer};", client.Socket);
+                SendString($"WAP/1.0 UPDATEPLAYER {updatedPlayer.Player};", client.Socket);
             }
         }
     }
