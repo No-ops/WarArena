@@ -8,7 +8,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
-using WarArena.World;
 using WarArena;
 using WwaLibrary.World;
 

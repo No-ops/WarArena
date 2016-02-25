@@ -50,12 +50,12 @@ namespace WarArena
     static class WWaServer
     {
         static IPlayersRepository _repository = new DbPlayersRepository();
-        const Int32 LISTENERBACKLOG = 100;
-        const Int32 BUFFERLENGTH = 500;
+        public const Int32 LISTENERBACKLOG = 100;
+        public const Int32 BUFFERLENGTH = 500;
         const Int32 PORT = 8001;
         static IPAddress ipAddress = IPAddress.Any;
         static IPEndPoint localEndPoint = new IPEndPoint(ipAddress, PORT);
-        static UTF8Encoding encoding = new UTF8Encoding();
+        public static UTF8Encoding encoding = new UTF8Encoding();
 
         static void Main()
         {
@@ -69,207 +69,208 @@ namespace WarArena
             var responseQueue = new Queue<Response>();
             var unconfirmedConnections = new List<Socket>();
             var currentPlayerIndex = 0;
-            try
+            //try
+            //{
+            listeningSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            listeningSocket.Bind(localEndPoint);
+            listeningSocket.Listen(LISTENERBACKLOG);
+            Console.WriteLine($"WWAServer is listening on {listeningSocket.LocalEndPoint}");
+            while (true)
             {
-                listeningSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                listeningSocket.Bind(localEndPoint);
-                listeningSocket.Listen(LISTENERBACKLOG);
-                Console.WriteLine($"WWAServer is listening on {listeningSocket.LocalEndPoint}");
-                while (true)
+                // Check for dead connections
+                for (int i = 0; i < unconfirmedConnections.Count; i++)
                 {
-                    // Check for dead connections
+                    if (IsDisconnected(unconfirmedConnections[i]))
+                    {
+                        Console.WriteLine($"DEBUG: Avalible: {unconfirmedConnections[i].Available} - Poll: {unconfirmedConnections[i].Poll(1000, SelectMode.SelectRead)}");
+                        Console.WriteLine($"{unconfirmedConnections[i].RemoteEndPoint} disconnected.");
+                        unconfirmedConnections[i].Close();
+                        unconfirmedConnections.RemoveAt(i--);
+                    }
+                }
+
+                for (int i = 0; i < clients.Count; i++)
+                {
+                    if (IsDisconnected(clients[i].Socket))
+                    {
+                        Console.WriteLine($"{clients[i].Socket.RemoteEndPoint} ({clients[i].Player.Name}) disconnected.");
+                        responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.REMOVEPLAYER, IdParam = clients[i].Player.PlayerId });
+                        clients[i].Socket.Close();
+                        clients.RemoveAt(i--);
+                        if (clients.Count <= currentPlayerIndex)
+                            currentPlayerIndex = 0;
+                    }
+                }
+
+                // Check for new logins
+                if (clients.Count < 5)
+                {
                     for (int i = 0; i < unconfirmedConnections.Count; i++)
                     {
-                        if (IsDisconnected(unconfirmedConnections[i]))
+                        var connection = unconfirmedConnections[i];
+                        if (connection.Available > 0)
                         {
-                            Console.WriteLine($"{unconfirmedConnections[i].RemoteEndPoint} disconnected.");
-                            unconfirmedConnections[i].Close();
-                            unconfirmedConnections.RemoveAt(i--);
-                        }
-                    }
-
-                    for (int i = 0; i < clients.Count; i++)
-                    {
-                        if (IsDisconnected(clients[i].Socket))
-                        {
-                            Console.WriteLine($"{clients[i].Socket.RemoteEndPoint} ({clients[i].Player.Name}) disconnected.");
-                            responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.REMOVEPLAYER, IdParam = clients[i].Player.PlayerId });
-                            clients[i].Socket.Close();
-                            clients.RemoveAt(i--);
-                            if (clients.Count <= currentPlayerIndex)
-                                currentPlayerIndex = 0;
-                        }
-                    }
-
-                    // Check for new logins
-                    if (clients.Count < 5)
-                    {
-                        for (int i = 0; i < unconfirmedConnections.Count; i++)
-                        {
-                            var connection = unconfirmedConnections[i];
-                            if (connection.Available > 0)
+                            var buffer = new byte[BUFFERLENGTH];
+                            var bytesReceived = connection.Receive(buffer);
+                            var command = encoding.GetString(buffer, 0, bytesReceived);
+                            string[] parts;
+                            // Ignore any command that is not LOGIN
+                            if (command.StartsWith("WAP/1.0 LOGIN") && (parts = command.Split(' ')).Length == 4)
                             {
-                                var buffer = new byte[BUFFERLENGTH];
-                                var bytesReceived = connection.Receive(buffer);
-                                var command = encoding.GetString(buffer, 0, bytesReceived);
-                                string[] parts;
-                                // Ignore any command that is not LOGIN
-                                if (command.StartsWith("WAP/1.0 LOGIN") && (parts = command.Split(' ')).Length == 4)
+                                var name = parts[2];
+                                var password = parts[3];
+                                var model = _repository.GetByName(parts[2]);
+                                Player player = null;
+                                if (model == null) //Finns inte i databasen
                                 {
-                                    var name = parts[2];
-                                    var password = parts[3];
-                                    var model = _repository.GetByName(parts[2]);
-                                    Player player = null;
-                                    if (model == null) //Finns inte i databasen
+                                    player = new Player(GetFirstFreeId(clients), name, 100, 10, 0, world.GetRandomFreeCoords(clients));
+                                    model = Initiator.Mapper.Map<PlayerModel>(player);
+                                    model.Password = password;
+                                    _repository.Add(model);
+                                    responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.NEWPLAYER, IdParam = player.PlayerId });
+                                    clients.Add(new Client { Player = player, Socket = connection });
+                                    unconfirmedConnections.RemoveAt(i--);
+                                    if (clients.Count == 2)
+                                        responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.YOURTURN, IdParam = clients[currentPlayerIndex].Player.PlayerId });
+                                    Console.WriteLine($"{connection.RemoteEndPoint} created player {player.Name}");
+                                }
+                                else //Finns i databasen
+                                {
+                                    if (model.Password == password)
                                     {
-                                        player = new Player(GetFirstFreeId(clients), name, 100, 10, 0, world.GetRandomFreeCoords(clients));
-                                        model = Initiator.Mapper.Map<PlayerModel>(player);
-                                        model.Password = password;
-                                        _repository.Add(model);
+                                        player = Initiator.Mapper.Map<Player>(model);
+                                        player.Coordinates = world.GetRandomFreeCoords(clients);
+                                        player.PlayerId = GetFirstFreeId(clients);
                                         responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.NEWPLAYER, IdParam = player.PlayerId });
                                         clients.Add(new Client { Player = player, Socket = connection });
                                         unconfirmedConnections.RemoveAt(i--);
                                         if (clients.Count == 2)
                                             responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.YOURTURN, IdParam = clients[currentPlayerIndex].Player.PlayerId });
-                                        Console.WriteLine($"{connection.RemoteEndPoint} created player {player.Name}");
+                                        Console.WriteLine($"{connection.RemoteEndPoint} logged in as {player.Name}");
                                     }
-                                    else //Finns i databasen
+                                    else
                                     {
-                                        if (model.Password == password)
-                                        {
-                                            player = Initiator.Mapper.Map<Player>(model);
-                                            player.Coordinates = world.GetRandomFreeCoords(clients);
-                                            player.PlayerId = GetFirstFreeId(clients);
-                                            responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.NEWPLAYER, IdParam = player.PlayerId });
-                                            clients.Add(new Client { Player = player, Socket = connection });
-                                            unconfirmedConnections.RemoveAt(i--);
-                                            if (clients.Count == 2)
-                                                responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.YOURTURN, IdParam = clients[currentPlayerIndex].Player.PlayerId });
-                                            Console.WriteLine($"{connection.RemoteEndPoint} logged in as {player.Name}");
-                                        }
-                                        else
-                                        {
-                                            Console.WriteLine($"{connection.RemoteEndPoint} failed password for {player.Name}");
-                                            responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.DENIED, Socket = connection, StringParam = "LOGIN Wrong password" });
-                                        }
+                                        Console.WriteLine($"{connection.RemoteEndPoint} failed password for {player.Name}");
+                                        responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.DENIED, Socket = connection, StringParam = "LOGIN Wrong password" });
                                     }
                                 }
                             }
                         }
                     }
+                }
 
-                    // Accept new connections
-                    if (unconfirmedConnections.Count < 20 && listeningSocket.Poll(1000, SelectMode.SelectRead))
-                    {
-                        var newConnection = listeningSocket.Accept();
-                        Console.WriteLine($"New connection accepted from {newConnection.RemoteEndPoint}");
-                        unconfirmedConnections.Add(newConnection);
-                    }
+                // Accept new connections
+                if (unconfirmedConnections.Count < 20 && listeningSocket.Poll(1000, SelectMode.SelectRead))
+                {
+                    var newConnection = listeningSocket.Accept();
+                    Console.WriteLine($"New connection accepted from {newConnection.RemoteEndPoint}");
+                    unconfirmedConnections.Add(newConnection);
+                }
 
-                    // Get player commands
-                    foreach (var client in clients)
+                // Get player commands
+                foreach (var client in clients)
+                {
+                    if (client.Socket.Available > 0)
                     {
-                        if (client.Socket.Available > 0)
+                        var buffer = new byte[BUFFERLENGTH];
+                        var bytesReceived = client.Socket.Receive(buffer);
+                        var command = encoding.GetString(buffer, 0, bytesReceived);
+                        string[] parts = command.Split(' ');
+                        if (parts.Length < 2 || parts[0] != "WAP/1.0")
+                            continue;
+                        switch (parts[1])
                         {
-                            var buffer = new byte[BUFFERLENGTH];
-                            var bytesReceived = client.Socket.Receive(buffer);
-                            var command = encoding.GetString(buffer, 0, bytesReceived);
-                            string[] parts = command.Split(' ');
-                            if (parts.Length < 2 || parts[0] != "WAP/1.0")
-                                continue;
-                            switch (parts[1])
-                            {
-                                case "MOVE":
-                                    if (clients.IndexOf(client) != currentPlayerIndex || clients.Count < 2)
+                            case "MOVE":
+                                if (clients.IndexOf(client) != currentPlayerIndex || clients.Count < 2)
+                                {
+                                    responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.DENIED, Socket = client.Socket, StringParam = "MOVE Not your turn" });
+                                }
+                                else if (parts.Length < 3)
+                                {
+                                    responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.DENIED, Socket = client.Socket, StringParam = "MOVE invalid direction" });
+                                }
+                                else
+                                {
+                                    var result = world.MovePlayer(client.Player, parts[2], clients);
+                                    switch (result.MoveResult)
                                     {
-                                        responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.DENIED, Socket = client.Socket, StringParam = "MOVE Not your turn" });
+                                        case MoveResult.Fail:
+                                            responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.DENIED, Socket = client.Socket, StringParam = "MOVE You cannot move that way" });
+                                            break;
+                                        case MoveResult.Success:
+                                            responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.UPDATEPLAYER, IdParam = client.Player.PlayerId });
+                                            break;
+                                        case MoveResult.Gold:
+                                        case MoveResult.Potion:
+                                            responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.UPDATETILE, StringParam = world.GameMap[client.Player.Coordinates.X, client.Player.Coordinates.Y].ToString() });
+                                            responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.UPDATEPLAYER, IdParam = client.Player.PlayerId });
+                                            break;
+                                        case MoveResult.Player:
+                                            if (result.Player.Health <= 0)
+                                            {
+                                                world.GameMap[result.Player.Coordinates.X, result.Player.Coordinates.Y].Gold = result.Player.Gold;
+                                                result.Player.Gold = 0;
+                                                result.Player.Coordinates = world.GetRandomFreeCoords(clients);
+                                                result.Player.Health = 100;
+                                                result.Player.IsDead = false;
+                                            }
+                                            responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.UPDATEPLAYER, IdParam = result.Player.PlayerId });
+                                            break;
                                     }
-                                    else if (parts.Length < 3)
+                                    if (result.MoveResult != MoveResult.Fail)
                                     {
-                                        responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.DENIED, Socket = client.Socket, StringParam = "MOVE invalid direction" });
+                                        if (++currentPlayerIndex >= clients.Count)
+                                            currentPlayerIndex = 0;
+                                        responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.YOURTURN, IdParam = clients[currentPlayerIndex].Player.PlayerId });
                                     }
-                                    else
-                                    {
-                                        var result = world.MovePlayer(client.Player, parts[2], clients);
-                                        switch (result.MoveResult)
-                                        {
-                                            case MoveResult.Fail:
-                                                responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.DENIED, Socket = client.Socket, StringParam = "MOVE You cannot move that way" });
-                                                break;
-                                            case MoveResult.Success:
-                                                responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.UPDATEPLAYER, IdParam = client.Player.PlayerId });
-                                                break;
-                                            case MoveResult.Gold:
-                                            case MoveResult.Potion:
-                                                responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.UPDATETILE, StringParam = world.GameMap[client.Player.Coordinates.X, client.Player.Coordinates.Y].ToString() });
-                                                responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.UPDATEPLAYER, IdParam = client.Player.PlayerId });
-                                                break;
-                                            case MoveResult.Player:
-                                                if (result.Player.Health <= 0)
-                                                {
-                                                    world.GameMap[result.Player.Coordinates.X, result.Player.Coordinates.Y].Gold = result.Player.Gold;
-                                                    result.Player.Gold = 0;
-                                                    result.Player.Coordinates = world.GetRandomFreeCoords(clients);
-                                                    result.Player.Health = 100;
-                                                    result.Player.IsDead = false;
-                                                }
-                                                responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.UPDATEPLAYER, IdParam = result.Player.PlayerId });
-                                                break;
-                                        }
-                                        if (result.MoveResult != MoveResult.Fail)
-                                        {
-                                            if (++currentPlayerIndex >= clients.Count)
-                                                currentPlayerIndex = 0;
-                                            responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.YOURTURN, IdParam = clients[currentPlayerIndex].Player.PlayerId });
-                                        }
-                                    }
-                                    break;
-                            }
-                        }
-                    }
-
-                    // Fire off responses
-                    while (responseQueue.Count > 0)
-                    {
-                        var response = responseQueue.Dequeue();
-                        switch (response.ResponseType)
-                        {
-                            case Response.MessageType.NEWPLAYER:
-                                Response.SendNewPlayerResponses(clients, world, response.IdParam);
-                                break;
-
-                            case Response.MessageType.DENIED:
-                                Response.SendDeniedResponse(clients, response.Socket, response.StringParam);
-                                break;
-
-                            case Response.MessageType.REMOVEPLAYER:
-                                Response.SendRemovePlayerResponse(clients, response.IdParam);
-                                break;
-
-                            case Response.MessageType.UPDATETILE:
-                                Response.SendUpdateTile(clients, response.StringParam);
-                                break;
-
-                            case Response.MessageType.YOURTURN:
-                                Response.SendYourTurn(clients, response.IdParam);
-                                break;
-
-                            case Response.MessageType.UPDATEPLAYER:
-                                Response.SendUpdatePlayer(clients, response.IdParam);
+                                }
                                 break;
                         }
                     }
                 }
+
+                // Fire off responses
+                while (responseQueue.Count > 0)
+                {
+                    var response = responseQueue.Dequeue();
+                    switch (response.ResponseType)
+                    {
+                        case Response.MessageType.NEWPLAYER:
+                            Response.SendNewPlayerResponses(clients, world, response.IdParam);
+                            break;
+
+                        case Response.MessageType.DENIED:
+                            Response.SendDeniedResponse(clients, response.Socket, response.StringParam);
+                            break;
+
+                        case Response.MessageType.REMOVEPLAYER:
+                            Response.SendRemovePlayerResponse(clients, response.IdParam);
+                            break;
+
+                        case Response.MessageType.UPDATETILE:
+                            Response.SendUpdateTile(clients, response.StringParam);
+                            break;
+
+                        case Response.MessageType.YOURTURN:
+                            Response.SendYourTurn(clients, response.IdParam);
+                            break;
+
+                        case Response.MessageType.UPDATEPLAYER:
+                            Response.SendUpdatePlayer(clients, response.IdParam);
+                            break;
+                    }
+                }
             }
-            catch (Exception exception)
-            {
-                Console.WriteLine(exception.Message);
-                Console.ReadLine();
-            }
-            finally
-            {
-                listeningSocket?.Close();
-            }
+            //}
+            //catch (Exception exception)
+            //{
+            //    Console.WriteLine(exception.Message);
+            //    Console.ReadLine();
+            //}
+            //finally
+            //{
+            //    listeningSocket?.Close();
+            //}
         }
 
         private static int GetFirstFreeId(List<Client> clients)
@@ -287,7 +288,7 @@ namespace WarArena
 
         private static bool IsDisconnected(Socket socket)
         {
-            return socket.Available == 0 && socket.Poll(1000, SelectMode.SelectRead);
+            return socket.Poll(1000, SelectMode.SelectRead) && socket.Available == 0;
         }
     }
 }

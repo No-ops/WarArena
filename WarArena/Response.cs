@@ -20,7 +20,8 @@ namespace WarArena
 
         private static void SendString(string message, Socket socket)
         {
-            
+            var buffer = WWaServer.encoding.GetBytes(message);
+            socket.Send(buffer);
         }
 
         public static void SendNewPlayerResponses(List<Client> clients, WorldMap world, int id)
@@ -31,11 +32,12 @@ namespace WarArena
                 {
                     var worldBuilder = new StringBuilder("WAP/1.0 SENDSTATE");
                     AddWorld(clients, world, worldBuilder);
+                    worldBuilder.Append(';');
                     SendString(worldBuilder.ToString(), client.Socket);
                 }
                 else
                 {
-                    SendString($"WAP/1.0 NEWPLAYER {client.Player.Name},{client.Player}", client.Socket);
+                    SendString($"WAP/1.0 NEWPLAYER {client.Player.Name},{client.Player};", client.Socket);
                 }
             }
         }
@@ -61,14 +63,14 @@ namespace WarArena
 
         public static void SendDeniedResponse(List<Client> clients, Socket socket, string stringParam)
         {
-            SendString($"WAP/1.0 DENIED {stringParam}", socket);
+            SendString($"WAP/1.0 DENIED {stringParam};", socket);
         }
 
         public static void SendRemovePlayerResponse(List<Client> clients, int id)
         {
             foreach (var client in clients)
             {
-                SendString($"WAP/1.0 REMOVEPLAYER {id}", client.Socket);
+                SendString($"WAP/1.0 REMOVEPLAYER {id};", client.Socket);
             }
         }
 
@@ -76,14 +78,14 @@ namespace WarArena
         {
             foreach (var client in clients)
             {
-                SendString($"WAP/1.0 UPDATETILE {stringParam}", client.Socket);
+                SendString($"WAP/1.0 UPDATETILE {stringParam};", client.Socket);
             }
         }
 
         public static void SendYourTurn(List<Client> clients, int id)
         {
             var client = clients.Single(c => c.Player.PlayerId == id);
-            SendString($"WAP/1.0 YOURTURN {id}", client.Socket);
+            SendString($"WAP/1.0 YOURTURN {id};", client.Socket);
 
         }
 
@@ -92,7 +94,7 @@ namespace WarArena
             var updatedPlayer = clients.Single(c => c.Player.PlayerId == id);
             foreach (var client in clients)
             {
-                SendString($"WAP/1.0 UPDATEPLAYER {updatedPlayer}", client.Socket);
+                SendString($"WAP/1.0 UPDATEPLAYER {updatedPlayer};", client.Socket);
             }
         }
     }

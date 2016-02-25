@@ -18,6 +18,10 @@ namespace WarArena
     {
         public Tile[,] GameMap { get; set; }
 
+        public WorldMap()
+        {
+            GameMap = MapCreator.CreateEmptyMap();
+        }
         public void PlaceGold(IEnumerable<Client> clients)
         {
             if (RandomizationFunctions.Chance(30))
