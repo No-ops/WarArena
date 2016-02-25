@@ -78,7 +78,7 @@ namespace WarArenaClient
             do
             {
                 Handler.Clear();
-                Handler.WriteLine($"Player {Player.PlayersCreated + 1}");
+                Handler.WriteLine("Login: ");
                 Handler.Write($"Please enter your name: ");
                 name = Handler.ReadString();
             } while (!Validator.HasMinLength(name, 3));
@@ -175,9 +175,8 @@ namespace WarArenaClient
                                 Player player = _players.SingleOrDefault(p => p.PlayerId == playerId);
                                 if (player == null)
                                 {
-                                    player = new Player(name, health, 10, gold, coordinates);
-                                    player.PlayerId = playerId;
-                                    _players[playerId] = player;
+                                    player = new Player(playerId, name, health, 10, gold, coordinates);
+                                    _players.Add(player);
                                 }
                                 else
                                 {
@@ -209,7 +208,7 @@ namespace WarArenaClient
                     Coords coordinates = new Coords(int.Parse(playerInfos[2]), int.Parse(playerInfos[3]));
                     int health = int.Parse(playerInfos[4]);
                     int gold = int.Parse(playerInfos[5]);
-                    var player = new Player(name, health, 10, gold, coordinates);
+                    var player = new Player(id, name, health, 10, gold, coordinates);
                     player.PlayerId = id;
                     _players.Add(player);
                     return ServerResponse.NewPlayer;
