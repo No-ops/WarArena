@@ -21,6 +21,7 @@ namespace WarArena
         private static void SendString(string message, Socket socket)
         {
             var buffer = WWaServer.encoding.GetBytes(message);
+            Console.WriteLine($"Send: {message}\nTo: {socket.RemoteEndPoint}");
             socket.Send(buffer);
         }
 

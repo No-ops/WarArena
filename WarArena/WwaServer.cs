@@ -82,7 +82,6 @@ namespace WarArena
                 {
                     if (IsDisconnected(unconfirmedConnections[i]))
                     {
-                        Console.WriteLine($"DEBUG: Avalible: {unconfirmedConnections[i].Available} - Poll: {unconfirmedConnections[i].Poll(1000, SelectMode.SelectRead)}");
                         Console.WriteLine($"{unconfirmedConnections[i].RemoteEndPoint} disconnected.");
                         unconfirmedConnections[i].Close();
                         unconfirmedConnections.RemoveAt(i--);
@@ -151,7 +150,7 @@ namespace WarArena
                                     }
                                     else
                                     {
-                                        Console.WriteLine($"{connection.RemoteEndPoint} failed password for {player.Name}");
+                                        Console.WriteLine($"{connection.RemoteEndPoint} failed password for {model.Name}");
                                         responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.DENIED, Socket = connection, StringParam = "LOGIN Wrong password" });
                                     }
                                 }
