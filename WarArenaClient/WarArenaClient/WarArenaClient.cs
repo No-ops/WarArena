@@ -278,7 +278,7 @@ namespace WarArenaClient
 
         public static void Display()
         {
-            Handler.Clear();
+            ClearBoard();
             PrintBoard();
             foreach (var currentPlayer in _players)
             {
@@ -378,7 +378,24 @@ namespace WarArenaClient
             Handler.ChangeTextColor(player.PlayerColor);
             Handler.Write("@");
         }
-    }
 
+        static void ClearBoard()
+        {
+            Handler.ClearArea(0, 0, gameBoard.GetLength(0) - 1, gameBoard.GetLength(1) - 1);
+        }
+
+        static void ClearHealthBars()
+        {
+            for (int i = 0; i < _players.Count; i++)
+            {
+                Handler.ClearLine(gameBoard.GetLength(0), i);
+            }
+        }
+
+        static void ClearPlayerStats()
+        {
+            
+        }
+    }
 }
 
