@@ -15,7 +15,7 @@ namespace WarArena
     }
     public class Player
     {
-        public static readonly string[] PlayerColors = { "Red", "Blue", "Green" };
+        public static readonly string[] PlayerColors = { "Red", "Blue", "Green", "Yellow", "Orange" };
 
         public Player(int id, Coords startCoordinates)
         {
