@@ -107,6 +107,7 @@ namespace WarArenaClient
                     switch (response)
                     {
                         case ServerResponse.YourTurn:
+                            Handler.ClearLine(0, gameBoard.GetLength(1) + _players.Count);
                             Handler.SetCursorPosition(0, gameBoard.GetLength(1) + _players.Count);
                             Handler.Write("Your turn");
                             ok = false;

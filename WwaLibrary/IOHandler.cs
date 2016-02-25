@@ -46,6 +46,12 @@ namespace WarArena
             Console.Write(character);
         }
 
+        public void Write(string text, int x, int y)
+        {
+            Console.SetCursorPosition(x, y);
+            Console.Write(text);
+        }
+
         public void WriteLine(string text)
         {
             Console.WriteLine(text);
