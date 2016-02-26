@@ -121,6 +121,9 @@ namespace WarArenaClient
                             case ServerResponse.Sendstate:
                                 Display();
                                 break;
+                            case ServerResponse.NewPlayer:
+                                Display();
+                                break;
                             case ServerResponse.UpdatePlayer:
                                 Display();
                                 break;
