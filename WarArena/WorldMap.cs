@@ -119,7 +119,6 @@ namespace WarArena
                     player.Coordinates.Y = newY;
                     return new MoveResultWrapper { MoveResult = MoveResult.Success };
                 case MoveResult.Player:
-                    player.Health += GameMap[newX, newY].Health;
                     enemy.Health -= player.Attack;
                     return new MoveResultWrapper { MoveResult = MoveResult.Player, Player = enemy };
                 default:
