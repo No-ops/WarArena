@@ -350,7 +350,7 @@ namespace WarArenaClient
             Handler.ChangeTextColor("White");
             for (int i = 0; i < _players.Count; i++)
             {
-                Handler.Write($"{_players[i].Name}. Gold: {_players[i].Gold}.", 0, gameBoard.GetLength(1) + i + 1);
+                Handler.Write($"{_players[i].Name}. Gold: {_players[i].Gold}.", 0, gameBoard.GetLength(1) + i);
             }
         }
 
@@ -454,7 +454,7 @@ namespace WarArenaClient
             Handler.ChangeTextColor("Black");
             for (int i = 0; i < _players.Count; i++)
             {
-                Handler.Write($"{_players[i].Name}. Gold: {_players[i].Gold}.", 0, gameBoard.GetLength(1) + i + 1);
+                Handler.Write($"{_players[i].Name} Gold: {_players[i].Gold}", 0, gameBoard.GetLength(1) + i);
             }
         }
 
