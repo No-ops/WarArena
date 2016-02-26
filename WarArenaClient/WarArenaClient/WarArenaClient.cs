@@ -98,6 +98,7 @@ namespace WarArenaClient
                 ConnectToServer();
                 LoginData data = Login();
                 SendLoginRequest(data.Name, data.Password);
+                Handler.Clear();
                 while (true)
                 {
                     RecieveResponse();
