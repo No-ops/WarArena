@@ -98,6 +98,7 @@ namespace WarArenaClient
                 ConnectToServer();
                 LoginData data = Login();
                 SendLoginRequest(data.Name, data.Password);
+                Handler.Clear();
                 while (true)
                 {
                     RecieveResponse();
@@ -118,6 +119,9 @@ namespace WarArenaClient
                                 Handler.Write("Waiting for other players to move", 0, gameBoard.GetLength(1) + _players.Count);
                                 break;
                             case ServerResponse.Sendstate:
+                                Display();
+                                break;
+                            case ServerResponse.NewPlayer:
                                 Display();
                                 break;
                             case ServerResponse.UpdatePlayer:
@@ -349,7 +353,7 @@ namespace WarArenaClient
             Handler.ChangeTextColor("White");
             for (int i = 0; i < _players.Count; i++)
             {
-                Handler.Write($"{_players[i].Name}. Gold: {_players[i].Gold}.", 0, gameBoard.GetLength(1) + i + 1);
+                Handler.Write($"{_players[i].Name}. Gold: {_players[i].Gold}.", 0, gameBoard.GetLength(1) + i);
             }
         }
 
@@ -453,7 +457,7 @@ namespace WarArenaClient
             Handler.ChangeTextColor("Black");
             for (int i = 0; i < _players.Count; i++)
             {
-                Handler.Write($"{_players[i].Name}. Gold: {_players[i].Gold}.", 0, gameBoard.GetLength(1) + i + 1);
+                Handler.Write($"{_players[i].Name} Gold: {_players[i].Gold}", 0, gameBoard.GetLength(1) + i);
             }
         }
 

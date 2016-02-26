@@ -73,7 +73,7 @@ namespace WarArena
         public void ClearLine(int startColumn, int startRow)
         {            
             Console.SetCursorPosition(startColumn, startRow);
-            Console.Write(new string(' ', Console.WindowWidth));
+            Console.Write(new string(' ', Console.WindowWidth - startColumn));
             Console.SetCursorPosition(startColumn, startRow);
         }
 
@@ -82,7 +82,7 @@ namespace WarArena
             for (int i = y1; i <= y2; i++)
             {
                 Console.SetCursorPosition(x1, i);
-                Console.Write(new string(' ', y1 + 1));
+                Console.Write(new string(' ', x2 - x1 + 1));
             }            
         }
     }
