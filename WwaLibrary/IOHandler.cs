@@ -23,7 +23,7 @@ namespace WarArena
 
         public ConsoleKeyInfo ReadKey()
         {
-            return Console.ReadKey();
+            return Console.ReadKey(true);
         }
 
         public string ReadString()

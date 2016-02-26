@@ -109,7 +109,7 @@ namespace WarArenaClient
                         {
                             case ServerResponse.YourTurn:
                                 Handler.ClearLine(0, gameBoard.GetLength(1) + _players.Count);
-                                Handler.Write("Your turn", 0, gameBoard.GetLength(1) + _players.Count);
+                                Handler.Write("Your turn. Press Arrow keys to move or press (c) to chatt", 0, gameBoard.GetLength(1) + _players.Count);
                                 bool ok = false;
                                 while (!ok)
                                 {
@@ -305,26 +305,37 @@ namespace WarArenaClient
 
         static bool SendMoveRequest()
         {
-            ConsoleKeyInfo info = Handler.ReadKey();
-            var request = new StringBuilder();
-            request.Append("WAP/1.0 MOVE ");
-
-            switch (info.Key)
+            ConsoleKeyInfo info;
+            StringBuilder request;
+            do
             {
-                case ConsoleKey.UpArrow:
-                    request.Append("UP");
-                    break;
-                case ConsoleKey.DownArrow:
-                    request.Append("DOWN");
-                    break;
-                case ConsoleKey.LeftArrow:
-                    request.Append("LEFT");
-                    break;
-                case ConsoleKey.RightArrow:
-                    request.Append("RIGHT");
-                    break;
-            }
-
+                request = new StringBuilder();
+                request.Append("WAP/1.0 ");
+                info = Handler.ReadKey();
+                switch (info.Key)
+                {
+                    case ConsoleKey.UpArrow:
+                        request.Append("MOVE UP");
+                        break;
+                    case ConsoleKey.DownArrow:
+                        request.Append("MOVE DOWN");
+                        break;
+                    case ConsoleKey.LeftArrow:
+                        request.Append("MOVE LEFT");
+                        break;
+                    case ConsoleKey.RightArrow:
+                        request.Append("MOVE RIGHT");
+                        break;
+                    case ConsoleKey.C:
+                        Handler.Write("message: ", gameBoard.GetLength(0), _players.Count + _chattMessages.Count);
+                        string message = Handler.ReadString();
+                        request.Append($"MESSAGE {message}");
+                        Handler.ClearLine(gameBoard.GetLength(0), _players.Count + _chattMessages.Count);
+                        byte[] buffer = Encoding.UTF8.GetBytes(request.ToString());
+                        socket.Send(buffer);
+                        break;
+                }
+            } while (info.Key == ConsoleKey.C);
             if (request.Length >= 14)
             {
                 byte[] bytes = Encoding.UTF8.GetBytes(request.ToString());
@@ -353,7 +364,7 @@ namespace WarArenaClient
             Handler.ChangeTextColor("White");
             for (int i = 0; i < _players.Count; i++)
             {
-                Handler.Write($"{_players[i].Name}. Gold: {_players[i].Gold}.", 0, gameBoard.GetLength(1) + i);
+                Handler.Write($"{_players[i].Name} Gold: {_players[i].Gold}", 0, gameBoard.GetLength(1) + i);
             }
         }
 
