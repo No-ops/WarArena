@@ -10,6 +10,8 @@ namespace WarArenaMasterServer.Repositories
     interface IServersRepository
     {
         void Add(ServerModel server);
+        void Remove(ServerModel server);
         ServerModel GetByIPAndPort(string ip, string port);
+        List<ServerModel> GetActiveServers();
     }
 }

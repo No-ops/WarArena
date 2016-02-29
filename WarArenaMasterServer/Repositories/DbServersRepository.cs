@@ -23,6 +23,20 @@ namespace WarArena.Repositories
             context.Servers.Add(server);
             context.SaveChanges();
         }
+        public void Remove(ServerModel server)
+        {
+            context.Servers.Remove(server);
+            context.SaveChanges();
+        }
+        public List<ServerModel> GetActiveServers()
+        {
+            var servers = new List<ServerModel>();
+            foreach (var server in context.Servers)
+            {
+                servers.Add(server);
+            }
+            return servers;
+        }
 
     }
 }
