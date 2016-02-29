@@ -41,7 +41,7 @@ namespace WarArenaClient
         static List<Player> _players;
         static readonly IOHandler Handler = new IOHandler();
         static int? _playerId;
-        static List<string> _chattMessages = new List<string>();
+        static List<string> _chatMessages = new List<string>();
         static Queue<ServerResponse> _responseQueue = new Queue<ServerResponse>();
 
         static void ConnectToServer()
@@ -109,7 +109,7 @@ namespace WarArenaClient
                         {
                             case ServerResponse.YourTurn:
                                 Handler.ClearLine(0, gameBoard.GetLength(1) + _players.Count);
-                                Handler.Write("Your turn. Press Arrow keys to move or press (c) to chatt", 0, gameBoard.GetLength(1) + _players.Count);
+                                Handler.Write("Your turn. Press Arrow keys to move or press (c) to chat", 0, gameBoard.GetLength(1) + _players.Count);
                                 bool ok = false;
                                 while (!ok)
                                 {
@@ -282,11 +282,18 @@ namespace WarArenaClient
                     {
                         int id = int.Parse(responseParts[2]);
                         string name = _players.SingleOrDefault(p => p.PlayerId == id)?.Name;
-                        if (_chattMessages.Count == 5)
+                        if (_chatMessages.Count == 5)
                         {
-                            _chattMessages.RemoveAt(0);
+                            _chatMessages.RemoveAt(0);
                         }
-                        _chattMessages.Add($"{name}: {responseParts[3]}");
+                        var messageBuilder = new StringBuilder();
+                        messageBuilder.Append($"{name}: ");
+                        for (int i = 3; i < responseParts.Count(); i++)
+                        {
+                            messageBuilder.Append($"{responseParts[i]} ");
+                        }
+                        _chatMessages.Add(messageBuilder.ToString());
+                        _responseQueue.Enqueue(ServerResponse.Message);
                     }
                     if (responseParts[1] == "DENIED")
                     {
@@ -327,10 +334,10 @@ namespace WarArenaClient
                         request.Append("MOVE RIGHT");
                         break;
                     case ConsoleKey.C:
-                        Handler.Write("message: ", gameBoard.GetLength(0), _players.Count + _chattMessages.Count);
+                        Handler.Write("message: ", gameBoard.GetLength(0), _players.Count + _chatMessages.Count);
                         string message = Handler.ReadString();
                         request.Append($"MESSAGE {message}");
-                        Handler.ClearLine(gameBoard.GetLength(0), _players.Count + _chattMessages.Count);
+                        Handler.ClearLine(gameBoard.GetLength(0), _players.Count + _chatMessages.Count);
                         byte[] buffer = Encoding.UTF8.GetBytes(request.ToString());
                         socket.Send(buffer);
                         break;
@@ -474,17 +481,17 @@ namespace WarArenaClient
 
         static void PrintChattMessages()
         {
-            for (int i = 0; i < _chattMessages.Count; i++)
+            for (int i = 0; i < _chatMessages.Count; i++)
             {
-                Handler.Write(_chattMessages[i], gameBoard.GetLength(0), _players.Count + i + 1);
+                Handler.Write(_chatMessages[i], gameBoard.GetLength(0), _players.Count + i);
             }
         }
 
         static void ClearChattMessages()
         {
-            for (int i = 0; i < _chattMessages.Count; i++)
+            for (int i = 0; i < _chatMessages.Count; i++)
             {
-                Handler.ClearLine(gameBoard.GetLength(0), _players.Count + i + 1);
+                Handler.ClearLine(gameBoard.GetLength(0), _players.Count + i);
             }
         }
     }
