@@ -28,14 +28,17 @@ namespace WarArenaClient
     }
     class WarArenaClient
     {
-        const Int32 BUFFERLENGTH = 200;
+        const Int32 BUFFERLENGTH = 500;
         const String IPADDRESS = "127.0.0.1";
         //const String IPADDRESS = "10.56.5.232";
+        const Int32 MASTERPORT = 8002;
         const Int32 PORT = 8001;
-        static IPAddress ipAddress = IPAddress.Parse(IPADDRESS);
-        static IPEndPoint remoteEndPoint = new IPEndPoint(ipAddress, PORT);
-        static UTF8Encoding encoding = new UTF8Encoding();
-        static Socket socket = null;
+        static readonly IPAddress IpAddress = IPAddress.Parse(IPADDRESS);
+        static readonly IPEndPoint MasterEndPoint = new IPEndPoint(IpAddress, MASTERPORT);
+        static readonly IPEndPoint RemoteEndPoint = new IPEndPoint(IpAddress, PORT);
+        static UTF8Encoding _encoding = new UTF8Encoding();
+        private static Socket _masterSocket = null;
+        static Socket _socket = null;
 
         static Tile[,] gameBoard = MapCreator.CreateEmptyMap();
         static List<Player> _players;
@@ -43,22 +46,64 @@ namespace WarArenaClient
         static int? _playerId;
         static List<string> _chatMessages = new List<string>();
         static Queue<ServerResponse> _responseQueue = new Queue<ServerResponse>();
+        static List<IPEndPoint> _serverList = new List<IPEndPoint>(); 
 
         static void ConnectToServer()
         {
             Handler.WriteLine("Welcome to WarArenaClient!");
-            socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            socket.Connect(remoteEndPoint);
-            Handler.WriteLine("Connected to server.");
-            Handler.WriteLine("Local end point: " + socket.LocalEndPoint);
-            Handler.WriteLine("Remote end point: " + socket.RemoteEndPoint);
+            _masterSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _masterSocket.Connect(MasterEndPoint);
+            Handler.WriteLine("fetching info...");
+            string messageToMaster = "WAMP/1.0 AVAILABLE_SERVERS";
+            byte[] bytes = Encoding.UTF8.GetBytes(messageToMaster);           
+            _masterSocket.Send(bytes);
+            bytes = new byte[BUFFERLENGTH];
+            _masterSocket.Receive(bytes);
+            string masterMessage = Encoding.UTF8.GetString(bytes).TrimEnd('\0');
+            string[] masterMessageParts = masterMessage.Split(new char[] {' '}, StringSplitOptions.RemoveEmptyEntries);
+            if (masterMessageParts[1] == "SERVERLIST")
+            {
+                for (int i = 2; i < masterMessageParts.Length; i++)
+                {
+                    string[] serverInfo = masterMessageParts[i].Split(new char[] {','},
+                        StringSplitOptions.RemoveEmptyEntries);
+                    string[] ipAndPort = serverInfo[1].Split(new char[] {':'},
+                        StringSplitOptions.RemoveEmptyEntries);
+                    _serverList.Add(new IPEndPoint(IPAddress.Parse(ipAndPort[0]), int.Parse(ipAndPort[1])));
+                    Handler.WriteLine($"({i - 1}) {serverInfo[0]} {ipAndPort[0]}:{ipAndPort[1]}");
+                }
+                Handler.WriteLine($"Please press the corresponing number key to connect to a server: ");
+                ConsoleKeyInfo info;
+                int serverNumber;
+                bool isNumber;
+                bool isValid;
+                do
+                {
+                    info = Handler.ReadKey();
+                    isNumber = int.TryParse(info.KeyChar.ToString(), out serverNumber);
+                    isValid = serverNumber != 0 && serverNumber <= _serverList.Count;
+                } while (!isNumber || !isValid);
+                _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                _socket.Connect(_serverList[serverNumber - 1]);
+                Handler.WriteLine("Connected to server.");
+                Handler.WriteLine("Local end point: " + _socket.LocalEndPoint);
+                Handler.WriteLine("Remote end point: " + _socket.RemoteEndPoint);
+                Handler.WriteLine("Press any key to login");
+                Handler.ReadKey();
+            }
+            else
+            {
+                Console.WriteLine("No servers found...");
+                Console.ReadKey();
+            }
+            
         }
 
         static void SendLoginRequest(string name, string password)
         {
             string request = $"WAP/1.0 LOGIN {name} {password}";
             byte[] bytes = Encoding.UTF8.GetBytes(request);
-            socket.Send(bytes);
+            _socket.Send(bytes);
             //bytes = new byte[BUFFERLENGTH];
             //socket.Receive(bytes);
             //string response = Encoding.UTF8.GetString(bytes);
@@ -161,7 +206,7 @@ namespace WarArenaClient
             }
             finally
             {
-                socket?.Close();
+                _socket?.Close();
             }
             Console.WriteLine("Client shut down.");
             Console.ReadLine();
@@ -174,7 +219,7 @@ namespace WarArenaClient
                 _players = new List<Player>();
             }
             byte[] bytes = new byte[BUFFERLENGTH];
-            socket.Receive(bytes);
+            _socket.Receive(bytes);
             string fromServer = Encoding.UTF8.GetString(bytes).TrimEnd('\0');
             string[] responses = fromServer.Split(';');
             foreach (string response in responses)
@@ -339,14 +384,14 @@ namespace WarArenaClient
                         request.Append($"MESSAGE {message}");
                         Handler.ClearLine(gameBoard.GetLength(0), _players.Count + _chatMessages.Count);
                         byte[] buffer = Encoding.UTF8.GetBytes(request.ToString());
-                        socket.Send(buffer);
+                        _socket.Send(buffer);
                         break;
                 }
             } while (info.Key == ConsoleKey.C);
             if (request.Length >= 14)
             {
                 byte[] bytes = Encoding.UTF8.GetBytes(request.ToString());
-                socket.Send(bytes);
+                _socket.Send(bytes);
                 return true;
             }
 
