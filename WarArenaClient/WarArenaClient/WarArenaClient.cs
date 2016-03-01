@@ -46,7 +46,8 @@ namespace WarArenaClient
         static int? _playerId;
         static List<string> _chatMessages = new List<string>();
         static Queue<ServerResponse> _responseQueue = new Queue<ServerResponse>();
-        static List<IPEndPoint> _serverList = new List<IPEndPoint>(); 
+        static List<IPEndPoint> _serverList = new List<IPEndPoint>();
+        static bool _useObjects;
 
         static void ConnectToServer()
         {
@@ -96,6 +97,7 @@ namespace WarArenaClient
                 Console.WriteLine("No servers found...");
                 Console.ReadKey();
             }
+
             
         }
 

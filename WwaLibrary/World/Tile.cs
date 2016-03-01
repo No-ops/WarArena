@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Runtime.Serialization;
 
 namespace WwaLibrary.World
 {
     [Serializable]
+    [KnownType(typeof(Tile))]
     public class Tile
     { 
         public bool IsCaveWall { get; private set; }
