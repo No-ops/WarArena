@@ -7,21 +7,27 @@ using System.Threading.Tasks;
 
 namespace ExcersiseSerialization
 {
-    [Serializable]
-    [KnownType(typeof(Person))]
+    //[Serializable]
+    //[KnownType(typeof(Person))]
+    [DataContract]
     class Person
     {
-        public Person(string name, int age)
+        public Person(string name, int age, Coords coordinates)
         {
             Name = name;
             Age = age;
+            Coordinates = coordinates;
         }
+        [DataMember]
         public string Name { get; set; }
+        [DataMember]
         public int Age { get; set; }
+        [DataMember]
+        public Coords Coordinates { get; set;  }
 
         public override string ToString()
         {
-            return $"Name: {Name} Age: {Age}";
+            return $"Name: {Name} Age: {Age} X: {Coordinates.X} Y: {Coordinates.Y}";
         }
     }
 }

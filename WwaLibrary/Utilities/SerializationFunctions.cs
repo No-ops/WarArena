@@ -11,14 +11,20 @@ namespace WwaLibrary.Utilities
 {
     public static class SerializationFunctions
     {
-        public static T DeserializeObject<T>(Stream stream)
-            where T : class
+        public static string SerializeObject<T>(T obj) where T : class
         {
-            T obj = null;
+            var stream = new MemoryStream();
             var jsonSerializer = new DataContractJsonSerializer(typeof(T));
-            stream.Position = 0;
-            obj = (T)jsonSerializer.ReadObject(stream);
-            return obj;
+            jsonSerializer.WriteObject(stream, obj);
+            return Encoding.UTF8.GetString(stream.ToArray());
+        }
+
+        public static T DeserializeObject<T>(string json) where T : class
+        {
+            var jsonSerializer = new DataContractJsonSerializer(typeof(T));
+            byte[] bytes = Encoding.UTF8.GetBytes(json);
+            var stream = new MemoryStream(bytes);
+            return (T)jsonSerializer.ReadObject(stream);
         }
     }
 }

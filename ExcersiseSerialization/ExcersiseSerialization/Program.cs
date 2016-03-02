@@ -25,14 +25,18 @@ namespace ExcersiseSerialization
         {
             try
             {
-                var person = new Person("Per Persson", 110);
-                for (int i = 0; i < 4; i++)
-                {
-                    MemoryStreamWrapper wrapper = SerializeObject(person, (SerializationFormat)i);
-                    person = DeserializeObject<Person>(wrapper);
-                    Console.WriteLine(person);
-                }
-                
+                var person = new Person("Per Persson", 110, new Coords(1, 2));
+                string jSonPerson = SerializeObject<Person>(person);
+                Console.WriteLine(jSonPerson);
+                person = DeserializeObject<Person>(jSonPerson);
+                Console.WriteLine(person);
+                //for (int i = 0; i < 4; i++)
+                //{
+                //    string json = SerializeObject<Person>(person, (SerializationFormat)i);
+                //    person = DeserializeObject<Person>(wrapper);
+                //    Console.WriteLine(person);
+                //}
+
             }
             catch (Exception exception)
             {
@@ -40,35 +44,51 @@ namespace ExcersiseSerialization
             }
         }
 
-        static T DeserializeObject<T>(MemoryStreamWrapper wrapper)
-            where T : class
+        static string SerializeObject<T>(T obj) where T : class
         {
-            T obj = null;
-            switch (wrapper.Format)
-            {
-                case SerializationFormat.Binary:
-                    var binaryFormatter = new BinaryFormatter();
-                    wrapper.Stream.Position = 0;
-                    obj = (T)binaryFormatter.Deserialize(wrapper.Stream);
-                    break;
-                case SerializationFormat.Json:
-                    var jsonSerializer = new DataContractJsonSerializer(typeof(T));
-                    wrapper.Stream.Position = 0;
-                    obj = (T)jsonSerializer.ReadObject(wrapper.Stream);
-                    break;
-                case SerializationFormat.Xml:
-                    var xmlSerializer = new DataContractSerializer(typeof(T));
-                    wrapper.Stream.Position = 0;
-                    obj = (T)xmlSerializer.ReadObject(wrapper.Stream);
-                    break;
-                case SerializationFormat.Soap:
-                    var soapFormatter = new SoapFormatter();
-                    wrapper.Stream.Position = 0;
-                    obj = (T)soapFormatter.Deserialize(wrapper.Stream);
-                    break;
-            }
-            return obj;
+            var stream = new MemoryStream();
+            var jsonSerializer = new DataContractJsonSerializer(typeof(T));
+            jsonSerializer.WriteObject(stream, obj);
+            return Encoding.UTF8.GetString(stream.ToArray());
         }
+
+        static T DeserializeObject<T>(string json) where T : class
+        {
+            var jsonSerializer = new DataContractJsonSerializer(typeof(T));
+            byte[] bytes = Encoding.UTF8.GetBytes(json);
+            var stream = new MemoryStream(bytes);
+            return (T) jsonSerializer.ReadObject(stream);
+        }
+
+        //static T DeserializeObject<T>(MemoryStreamWrapper wrapper)
+        //    where T : class
+        //{
+        //    T obj = null;
+        //    switch (wrapper.Format)
+        //    {
+        //        case SerializationFormat.Binary:
+        //            var binaryFormatter = new BinaryFormatter();
+        //            wrapper.Stream.Position = 0;
+        //            obj = (T)binaryFormatter.Deserialize(wrapper.Stream);
+        //            break;
+        //        case SerializationFormat.Json:
+        //            var jsonSerializer = new DataContractJsonSerializer(typeof(T));
+        //            wrapper.Stream.Position = 0;
+        //            obj = (T)jsonSerializer.ReadObject(wrapper.Stream);
+        //            break;
+        //        case SerializationFormat.Xml:
+        //            var xmlSerializer = new DataContractSerializer(typeof(T));
+        //            wrapper.Stream.Position = 0;
+        //            obj = (T)xmlSerializer.ReadObject(wrapper.Stream);
+        //            break;
+        //        case SerializationFormat.Soap:
+        //            var soapFormatter = new SoapFormatter();
+        //            wrapper.Stream.Position = 0;
+        //            obj = (T)soapFormatter.Deserialize(wrapper.Stream);
+        //            break;
+        //    }
+        //    return obj;
+        //}
 
         static MemoryStreamWrapper SerializeObject(object obj, SerializationFormat format)
         {
