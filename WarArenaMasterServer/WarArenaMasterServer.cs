@@ -23,9 +23,11 @@ namespace WarArenaMasterServer
 
     ---------- SERVER -------------- 
 
-    Request WAMP/1.0 ADD <servername> <port>
+    Request WAMP/1.0 ADD <servername> <port> <format>
     --- Request from server to master to add server to list of available servers
+    --- <format> = t for text, o for object
     --- Servername MUST NOT contain blank spaces!
+    --- Example: WAMP/1.0 ADD EriksCoolServer 8602 o
 
     Request WAMP/1.0 REMOVE <port>
     --- Request from server to master to remove server from list of available servers
@@ -42,9 +44,9 @@ namespace WarArenaMasterServer
     --- Ask master for list of available servers
 
 
-    Response WAMP/1.0 SERVERLIST <name>,<ip>:<port>, <name>,<ip>:<port>, ...
+    Response WAMP/1.0 SERVERLIST <name>,<ip>:<port>,<format>, <name>,<ip>:<port>,<format>, ...
     --- Return list of available servers to client,
-    --- servers separated by ' '
+    --- servers separated by ', '
 
     */
 
@@ -114,6 +116,7 @@ namespace WarArenaMasterServer
                     {
                         var name = parts[2];
                         var port = parts[3];
+                        var format = parts[4];
                         var model = repository.GetByIPAndPort(ip, port);
 
                         if (model != null)
@@ -124,7 +127,8 @@ namespace WarArenaMasterServer
                             {
                                 Name = name,
                                 Ip = ip,
-                                Port = port
+                                Port = port,
+                                Format = format
                             };
                             repository.Add(model);
                             response = message + $"Server {name} ({ip}:{port}) added to list of active servers";
@@ -150,9 +154,9 @@ namespace WarArenaMasterServer
                         var servers = repository.GetActiveServers();
                         foreach (var server in servers)
                         {
-                            response += $"{server.Name},{server.Ip}:{server.Port} ";
+                            response += $"{server.Name},{server.Ip}:{server.Port},{server.Format}, ";
                         }
-                        response.Remove(response.Length - 1);
+                        response.Remove(response.Length - 2);
                     }
                     break;
                 default:
