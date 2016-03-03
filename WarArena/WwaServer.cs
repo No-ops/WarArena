@@ -59,6 +59,14 @@ namespace WarArena
 
         static void Main()
         {
+            Console.Write("Use (T)ext or (J)son? ");
+            ConsoleKey keyResponse;
+            do
+            {
+                keyResponse = Console.ReadKey().Key;
+            } while (keyResponse != ConsoleKey.T && keyResponse != ConsoleKey.J);
+            var json = keyResponse == ConsoleKey.J;
+            Console.WriteLine();
             Console.WriteLine("Initiating...");
             Initiator.AutoMapperConfig();
             Console.WriteLine("Creating new game...");
@@ -123,6 +131,7 @@ namespace WarArena
                                 Player player = null;
                                 if (model == null) //Finns inte i databasen
                                 {
+                                    responseQueue.Enqueue(new Response {ResponseType = Response.MessageType.WELCOME, Socket = connection});
                                     player = new Player(GetFirstFreeId(clients), name, 100, 10, 0, world.GetRandomFreeCoords(clients));
                                     model = Initiator.Mapper.Map<PlayerModel>(player);
                                     model.Password = password;
@@ -138,6 +147,7 @@ namespace WarArena
                                 {
                                     if (model.Password == password)
                                     {
+                                        responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.WELCOME, Socket = connection });
                                         player = Initiator.Mapper.Map<Player>(model);
                                         player.Coordinates = world.GetRandomFreeCoords(clients);
                                         player.PlayerId = GetFirstFreeId(clients);
@@ -248,7 +258,7 @@ namespace WarArena
                     switch (response.ResponseType)
                     {
                         case Response.MessageType.NEWPLAYER:
-                            Response.SendNewPlayerResponses(clients, world, response.IdParam);
+                            Response.SendNewPlayerResponses(clients, world, response.IdParam, json);
                             break;
 
                         case Response.MessageType.DENIED:
@@ -273,6 +283,10 @@ namespace WarArena
 
                         case Response.MessageType.MESSAGE:
                             Response.SendMessage(clients, response.IdParam, response.StringParam);
+                            break;
+
+                        case Response.MessageType.WELCOME:
+                            Response.SendWelcome(response.Socket, json);
                             break;
                     }
                 }

@@ -4,6 +4,9 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using WwaLibrary;
+using WwaLibrary.Utilities;
+using WwaLibrary.World;
 
 namespace WarArena
 {
@@ -11,7 +14,7 @@ namespace WarArena
     {
         public enum MessageType
         {
-            NEWPLAYER, REMOVEPLAYER, UPDATEPLAYER, UPDATETILE, YOURTURN, DENIED, INFO, MESSAGE
+            NEWPLAYER, REMOVEPLAYER, UPDATEPLAYER, UPDATETILE, YOURTURN, DENIED, INFO, MESSAGE, WELCOME
         }
         public string StringParam { get; set; }
         public MessageType ResponseType { get; set; }
@@ -25,21 +28,44 @@ namespace WarArena
             socket.Send(buffer);
         }
 
-        public static void SendNewPlayerResponses(List<Client> clients, WorldMap world, int id)
+        public static void SendNewPlayerResponses(List<Client> clients, WorldMap world, int id, bool json)
         {
             var newPlayer = clients.Single(c => c.Player.PlayerId == id);
             foreach (var client in clients)
             {
                 if (client.Player.PlayerId == id)
                 {
-                    var worldBuilder = new StringBuilder("WAP/1.0 SENDSTATE");
-                    AddWorld(clients, world, worldBuilder);
-                    worldBuilder.Append(';');
-                    SendString(worldBuilder.ToString(), client.Socket);
+                    var data = string.Empty;
+                    if (json)
+                    {
+                        var tiles = new List<Tile>();
+                        foreach (var tile in world.GameMap)
+                        {
+                            if (tile.HasGold || tile.HasHealth)
+                                tiles.Add(tile);
+                        }
+                        var dataObject = new SendState(clients.Select(c => c.Player).ToList(), tiles);
+                        data = $"WAP/1.0 SENDSTATE {SerializationFunctions.SerializeObject(dataObject)}";
+                    }
+                    else
+                    {
+                        var worldBuilder = new StringBuilder("WAP/1.0 SENDSTATE");
+                        AddWorld(clients, world, worldBuilder);
+                        worldBuilder.Append(';');
+                        data = worldBuilder.ToString();
+                    }
+                    SendString(data, client.Socket);
                 }
                 else
                 {
-                    SendString($"WAP/1.0 NEWPLAYER {newPlayer.Player.Name},{newPlayer.Player};", client.Socket);
+                    if (json)
+                    {
+                        SendString($"WAP/1.0 NEWPLAYER {SerializationFunctions.SerializeObject(newPlayer)};", client.Socket);
+                    }
+                    else
+                    {
+                        SendString($"WAP/1.0 NEWPLAYER {newPlayer.Player.Name},{newPlayer.Player};", client.Socket);
+                    }
                 }
             }
         }
@@ -55,10 +81,10 @@ namespace WarArena
 
             foreach (var tile in world.GameMap)
             {
-                if(tile.HasGold)
+                if (tile.HasGold)
                     stringBuilder.Append($" G,{tile.X},{tile.Y},{tile.Gold}");
 
-                if(tile.HasHealth)
+                if (tile.HasHealth)
                     stringBuilder.Append($" P,{tile.X},{tile.Y},{tile.Health}");
             }
         }
@@ -107,5 +133,13 @@ namespace WarArena
                 SendString($"WAP/1.0 MESSAGE {id} {message};", client.Socket);
             }
         }
+
+        public static void SendWelcome(Socket socket, bool json)
+        {
+            var encoding = json ? "JSON" : "TEXT";
+            SendString($"WAP/1.0 WELCOME {encoding}", socket);
+        }
+
+
     }
 }
