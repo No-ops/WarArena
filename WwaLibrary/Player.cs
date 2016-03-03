@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -13,6 +14,7 @@ namespace WarArena
         East,
         West
     }
+    [DataContract]
     public class Player
     {
         public static readonly string[] PlayerColors = { "Red", "Blue", "Green", "Yellow", "Orange" };
@@ -35,12 +37,17 @@ namespace WarArena
             Coordinates = startCoordinates;
             IsDead = false;
         }
+        [DataMember]
         public string Name { get; set; }
         public int Attack { get; set; }
+        [DataMember]
         public int Gold { get; set; }
+        [DataMember]
         public int PlayerId { get; set; }
+        [DataMember]
         public int Health { get; set; }
         public bool IsDead { get; set; }
+        [DataMember]
         public Coords Coordinates { get; set; }
         public string PlayerColor => PlayerColors[PlayerId];
         public void Move(Direction direction)

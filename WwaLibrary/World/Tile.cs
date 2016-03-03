@@ -1,8 +1,9 @@
 ﻿using System;
+using System.Runtime.Serialization;
 
 namespace WwaLibrary.World
 {
-    [Serializable]
+    [DataContract]
     public class Tile
     { 
         public bool IsCaveWall { get; private set; }
@@ -28,7 +29,9 @@ namespace WwaLibrary.World
                 return "White";
             }
         }
+        [DataMember]
         public int X { get; set; }
+        [DataMember]
         public int Y { get; set; }
 
         public Tile(int x, int y, bool isCaveWall = false)
@@ -38,9 +41,10 @@ namespace WwaLibrary.World
             Y = y;
             IsCaveWall = isCaveWall;
         }
-
+        [DataMember]
         public int Gold { get; set; }
         public bool HasGold => Gold > 0;
+        [DataMember]
         public int Health { get; set; }
         public bool HasHealth => Gold > 0;
 

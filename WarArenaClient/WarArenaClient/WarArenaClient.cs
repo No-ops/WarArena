@@ -9,11 +9,12 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using WarArena;
+using WwaLibrary;
+using WwaLibrary.Utilities;
 using WwaLibrary.World;
 
 namespace WarArenaClient
 {
-    //[Flags]
     enum ServerResponse
     {
         YourTurn,
@@ -23,42 +24,90 @@ namespace WarArenaClient
         RemovePlayer,
         UpdateTile,
         Message,
+        Welcome,
         LoginDenied,
         MoveDenied
     }
     class WarArenaClient
     {
-        const Int32 BUFFERLENGTH = 200;
+        const Int32 BUFFERLENGTH = 500;
         const String IPADDRESS = "127.0.0.1";
         //const String IPADDRESS = "10.56.5.232";
+        const Int32 MASTERPORT = 8002;
         const Int32 PORT = 8001;
-        static IPAddress ipAddress = IPAddress.Parse(IPADDRESS);
-        static IPEndPoint remoteEndPoint = new IPEndPoint(ipAddress, PORT);
-        static UTF8Encoding encoding = new UTF8Encoding();
-        static Socket socket = null;
+        static readonly IPAddress IpAddress = IPAddress.Parse(IPADDRESS);
+        static readonly IPEndPoint MasterEndPoint = new IPEndPoint(IpAddress, MASTERPORT);
+        static readonly IPEndPoint RemoteEndPoint = new IPEndPoint(IpAddress, PORT);
+        static UTF8Encoding _encoding = new UTF8Encoding();
+        private static Socket _masterSocket = null;
+        static Socket _socket = null;
 
         static Tile[,] gameBoard = MapCreator.CreateEmptyMap();
         static List<Player> _players;
         static readonly IOHandler Handler = new IOHandler();
         static int? _playerId;
-        static List<string> _chattMessages = new List<string>();
+        static List<string> _chatMessages = new List<string>();
         static Queue<ServerResponse> _responseQueue = new Queue<ServerResponse>();
+        static List<IPEndPoint> _serverList = new List<IPEndPoint>();
+        static bool _receiveJson = false;
 
         static void ConnectToServer()
         {
             Handler.WriteLine("Welcome to WarArenaClient!");
-            socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            socket.Connect(remoteEndPoint);
-            Handler.WriteLine("Connected to server.");
-            Handler.WriteLine("Local end point: " + socket.LocalEndPoint);
-            Handler.WriteLine("Remote end point: " + socket.RemoteEndPoint);
+            _masterSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _masterSocket.Connect(MasterEndPoint);
+            Handler.WriteLine("fetching info...");
+            string messageToMaster = "WAMP/1.0 AVAILABLE_SERVERS";
+            byte[] bytes = Encoding.UTF8.GetBytes(messageToMaster);
+            _masterSocket.Send(bytes);
+            bytes = new byte[BUFFERLENGTH];
+            _masterSocket.Receive(bytes);
+            string masterMessage = Encoding.UTF8.GetString(bytes).TrimEnd('\0');
+            string[] masterMessageParts = masterMessage.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (masterMessageParts[1] == "SERVERLIST")
+            {
+                for (int i = 2; i < masterMessageParts.Length; i++)
+                {
+                    string[] serverInfo = masterMessageParts[i].Split(new char[] { ',' },
+                        StringSplitOptions.RemoveEmptyEntries);
+                    string[] ipAndPort = serverInfo[1].Split(new char[] { ':' },
+                        StringSplitOptions.RemoveEmptyEntries);
+                    _serverList.Add(new IPEndPoint(IPAddress.Parse(ipAndPort[0]), int.Parse(ipAndPort[1])));
+                    Handler.WriteLine($"({i - 1}) {serverInfo[0]} {ipAndPort[0]}:{ipAndPort[1]}");
+                }
+                Handler.WriteLine($"Please press the corresponing number key to connect to a server: ");
+                ConsoleKeyInfo info;
+                int serverNumber;
+                bool isNumber;
+                bool isValid;
+                do
+                {
+                    info = Handler.ReadKey();
+                    isNumber = int.TryParse(info.KeyChar.ToString(), out serverNumber);
+                    isValid = serverNumber != 0 && serverNumber <= _serverList.Count;
+                } while (!isNumber || !isValid);
+                _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                _socket.Connect(_serverList[serverNumber - 1]);
+                Handler.WriteLine("Connected to server.");
+                Handler.WriteLine("Local end point: " + _socket.LocalEndPoint);
+                Handler.WriteLine("Remote end point: " + _socket.RemoteEndPoint);
+                Handler.WriteLine("Press any key to login");
+                Handler.ReadKey();
+            }
+            else
+            {
+                Console.WriteLine("No servers found...");
+                Console.ReadKey();
+            }
+
+
         }
 
         static void SendLoginRequest(string name, string password)
         {
             string request = $"WAP/1.0 LOGIN {name} {password}";
             byte[] bytes = Encoding.UTF8.GetBytes(request);
-            socket.Send(bytes);
+            _socket.Send(bytes);
             //bytes = new byte[BUFFERLENGTH];
             //socket.Receive(bytes);
             //string response = Encoding.UTF8.GetString(bytes);
@@ -109,7 +158,7 @@ namespace WarArenaClient
                         {
                             case ServerResponse.YourTurn:
                                 Handler.ClearLine(0, gameBoard.GetLength(1) + _players.Count);
-                                Handler.Write("Your turn. Press Arrow keys to move or press (c) to chatt", 0, gameBoard.GetLength(1) + _players.Count);
+                                Handler.Write("Your turn. Press Arrow keys to move or press (c) to chat", 0, gameBoard.GetLength(1) + _players.Count);
                                 bool ok = false;
                                 while (!ok)
                                 {
@@ -161,7 +210,7 @@ namespace WarArenaClient
             }
             finally
             {
-                socket?.Close();
+                _socket?.Close();
             }
             Console.WriteLine("Client shut down.");
             Console.ReadLine();
@@ -174,7 +223,7 @@ namespace WarArenaClient
                 _players = new List<Player>();
             }
             byte[] bytes = new byte[BUFFERLENGTH];
-            socket.Receive(bytes);
+            _socket.Receive(bytes);
             string fromServer = Encoding.UTF8.GetString(bytes).TrimEnd('\0');
             string[] responses = fromServer.Split(';');
             foreach (string response in responses)
@@ -182,6 +231,11 @@ namespace WarArenaClient
                 string[] responseParts = response.Split(' ');
                 if (responseParts[0] == "WAP/1.0")
                 {
+                    if (responseParts[1] == "WELCOME")
+                    {
+                        _receiveJson = responseParts[2] == "JSON";
+                    }
+
                     if (responseParts[1] == "YOURTURN")
                     {
                         if (!_playerId.HasValue)
@@ -193,71 +247,123 @@ namespace WarArenaClient
 
                     if (responseParts[1] == "SENDSTATE")
                     {
-                        for (int i = 2; i < responseParts.Length; i++)
+                        if (_receiveJson)
                         {
-                            string[] itemInfos = responseParts[i].Split(',');
-                            switch (itemInfos[0])
+                            var sendState = SerializationFunctions.DeserializeObject<SendState>(responseParts[2]);
+                            foreach (Player player in sendState.Players)
                             {
-                                case "Pl":
-                                    string name = itemInfos[1];
-                                    int playerId = int.Parse(itemInfos[2]);
-                                    Coords coordinates = new Coords(int.Parse(itemInfos[3]), int.Parse(itemInfos[4]));
-                                    int health = int.Parse(itemInfos[5]);
-                                    int gold = int.Parse(itemInfos[6]);
-                                    Player player = _players.SingleOrDefault(p => p.PlayerId == playerId);
-                                    if (player == null)
-                                    {
-                                        player = new Player(playerId, name, health, 10, gold, coordinates);
-                                        _players.Add(player);
-                                    }
-                                    else
-                                    {
-                                        player.Health = health;
-                                        player.Gold = gold;
-                                        player.Coordinates = coordinates;
-                                    }
-                                    break;
-                                case "P":
-                                    coordinates = new Coords(int.Parse(itemInfos[1]), int.Parse(itemInfos[2]));
-                                    health = int.Parse(itemInfos[3]);
-                                    gameBoard[coordinates.X, coordinates.Y].Health = health;
-                                    break;
-                                case "G":
-                                    coordinates = new Coords(int.Parse(itemInfos[1]), int.Parse(itemInfos[2]));
-                                    gold = int.Parse(itemInfos[3]);
-                                    gameBoard[coordinates.X, coordinates.Y].Gold = gold;
-                                    break;
+                                Player existingPlayer = _players.SingleOrDefault(p => p.PlayerId == player.PlayerId);
+                                if (existingPlayer == null)
+                                {
+                                    _players.Add(new Player(player.PlayerId, player.Name, player.Health, 10, player.Gold, player.Coordinates));
+                                }
+                                else
+                                {
+                                    existingPlayer.Gold = player.Gold;
+                                    existingPlayer.Health = player.Health;
+                                    existingPlayer.Coordinates = player.Coordinates;
+                                }
+                            }
+
+                            foreach (Tile tile in sendState.Tiles)
+                            {
+                                gameBoard[tile.X, tile.Y].Gold = tile.Gold;
+                                gameBoard[tile.X, tile.Y].Health = tile.Health;
                             }
                         }
+                        else
+                        {
+                            for (int i = 2; i < responseParts.Length; i++)
+                            {
+                                string[] itemInfos = responseParts[i].Split(',');
+                                switch (itemInfos[0])
+                                {
+                                    case "Pl":
+                                        string name = itemInfos[1];
+                                        int playerId = int.Parse(itemInfos[2]);
+                                        Coords coordinates = new Coords(int.Parse(itemInfos[3]), int.Parse(itemInfos[4]));
+                                        int health = int.Parse(itemInfos[5]);
+                                        int gold = int.Parse(itemInfos[6]);
+                                        Player player = _players.SingleOrDefault(p => p.PlayerId == playerId);
+                                        if (player == null)
+                                        {
+                                            player = new Player(playerId, name, health, 10, gold, coordinates);
+                                            _players.Add(player);
+                                        }
+                                        else
+                                        {
+                                            player.Health = health;
+                                            player.Gold = gold;
+                                            player.Coordinates = coordinates;
+                                        }
+                                        break;
+                                    case "P":
+                                        coordinates = new Coords(int.Parse(itemInfos[1]), int.Parse(itemInfos[2]));
+                                        health = int.Parse(itemInfos[3]);
+                                        gameBoard[coordinates.X, coordinates.Y].Health = health;
+                                        break;
+                                    case "G":
+                                        coordinates = new Coords(int.Parse(itemInfos[1]), int.Parse(itemInfos[2]));
+                                        gold = int.Parse(itemInfos[3]);
+                                        gameBoard[coordinates.X, coordinates.Y].Gold = gold;
+                                        break;
+                                }
+                            }
 
+                        }
                         _responseQueue.Enqueue(ServerResponse.Sendstate);
                     }
+
                     if (responseParts[1] == "NEWPLAYER")
                     {
-                        string[] playerInfos = responseParts[2].Split(',');
-                        string name = playerInfos[0];
-                        int id = int.Parse(playerInfos[1]);
-                        Coords coordinates = new Coords(int.Parse(playerInfos[2]), int.Parse(playerInfos[3]));
-                        int health = int.Parse(playerInfos[4]);
-                        int gold = int.Parse(playerInfos[5]);
-                        var player = new Player(id, name, health, 10, gold, coordinates);
-                        player.PlayerId = id;
-                        _players.Add(player);
+                        if (_receiveJson)
+                        {
+                            var player = SerializationFunctions.DeserializeObject<Player>(responseParts[2]);
+                            _players.Add(new Player(player.PlayerId, player.Name, player.Health, 10, player.Gold, player.Coordinates));
+                        }
+                        else
+                        {
+                            string[] playerInfos = responseParts[2].Split(',');
+                            string name = playerInfos[0];
+                            int id = int.Parse(playerInfos[1]);
+                            Coords coordinates = new Coords(int.Parse(playerInfos[2]), int.Parse(playerInfos[3]));
+                            int health = int.Parse(playerInfos[4]);
+                            int gold = int.Parse(playerInfos[5]);
+                            var player = new Player(id, name, health, 10, gold, coordinates);
+                            player.PlayerId = id;
+                            _players.Add(player);
+                        }
+
                         _responseQueue.Enqueue(ServerResponse.NewPlayer);
                     }
+
                     if (responseParts[1] == "UPDATEPLAYER")
                     {
-                        string[] playerInfos = responseParts[2].Split(',');
-                        int id = int.Parse(playerInfos[0]);
-                        Coords coordinates = new Coords(int.Parse(playerInfos[1]), int.Parse(playerInfos[2]));
-                        int health = int.Parse(playerInfos[3]);
-                        int gold = int.Parse(playerInfos[4]);
-                        Player playerToUpdate = _players.Single(p => p.PlayerId == id);
-                        playerToUpdate.Coordinates = coordinates;
-                        playerToUpdate.Health = health;
-                        playerToUpdate.Gold = gold;
+                        Player playerToUpdate;
+                        if (_receiveJson)
+                        {
+                            var player = SerializationFunctions.DeserializeObject<Player>(responseParts[2]);
+                            playerToUpdate = _players.Single(p => p.PlayerId == player.PlayerId);
+                            playerToUpdate.Coordinates = player.Coordinates;
+                            playerToUpdate.Gold = player.Gold;
+                            playerToUpdate.Health = player.Health;
+                        }
+                        else
+                        {
+                            string[] playerInfos = responseParts[2].Split(',');
+                            int id = int.Parse(playerInfos[0]);
+                            Coords coordinates = new Coords(int.Parse(playerInfos[1]), int.Parse(playerInfos[2]));
+                            int health = int.Parse(playerInfos[3]);
+                            int gold = int.Parse(playerInfos[4]);
+                            playerToUpdate = _players.Single(p => p.PlayerId == id);
+                            playerToUpdate.Coordinates = coordinates;
+                            playerToUpdate.Health = health;
+                            playerToUpdate.Gold = gold;
+                        }
+                        
                         _responseQueue.Enqueue(ServerResponse.UpdatePlayer);
                     }
+
                     if (responseParts[1] == "REMOVEPLAYER")
                     {
                         int id = int.Parse(responseParts[2]);
@@ -268,26 +374,46 @@ namespace WarArenaClient
                         }
                         _responseQueue.Enqueue(ServerResponse.RemovePlayer);
                     }
+
                     if (responseParts[1] == "UPDATETILE")
                     {
-                        string[] tileInfos = responseParts[2].Split(',');
-                        Coords coordinates = new Coords(int.Parse(tileInfos[0]), int.Parse(tileInfos[1]));
-                        int gold = int.Parse(tileInfos[2]);
-                        int health = int.Parse(tileInfos[3]);
-                        gameBoard[coordinates.X, coordinates.Y].Gold = gold;
-                        gameBoard[coordinates.X, coordinates.Y].Health = health;
+                        if (_receiveJson)
+                        {
+                            var tile = SerializationFunctions.DeserializeObject<Tile>(responseParts[2]);
+                            Tile tileToUpdate = gameBoard[tile.X, tile.Y];
+                            tileToUpdate.Gold = tile.Gold;
+                            tileToUpdate.Health = tile.Health;
+                        }
+                        else
+                        {
+                            string[] tileInfos = responseParts[2].Split(',');
+                            Coords coordinates = new Coords(int.Parse(tileInfos[0]), int.Parse(tileInfos[1]));
+                            int gold = int.Parse(tileInfos[2]);
+                            int health = int.Parse(tileInfos[3]);
+                            gameBoard[coordinates.X, coordinates.Y].Gold = gold;
+                            gameBoard[coordinates.X, coordinates.Y].Health = health;
+                        }                      
                         _responseQueue.Enqueue(ServerResponse.UpdateTile);
                     }
+
                     if (responseParts[1] == "MESSAGE")
                     {
                         int id = int.Parse(responseParts[2]);
                         string name = _players.SingleOrDefault(p => p.PlayerId == id)?.Name;
-                        if (_chattMessages.Count == 5)
+                        if (_chatMessages.Count == 5)
                         {
-                            _chattMessages.RemoveAt(0);
+                            _chatMessages.RemoveAt(0);
                         }
-                        _chattMessages.Add($"{name}: {responseParts[3]}");
+                        var messageBuilder = new StringBuilder();
+                        messageBuilder.Append($"{name}: ");
+                        for (int i = 3; i < responseParts.Count(); i++)
+                        {
+                            messageBuilder.Append($"{responseParts[i]} ");
+                        }
+                        _chatMessages.Add(messageBuilder.ToString());
+                        _responseQueue.Enqueue(ServerResponse.Message);
                     }
+
                     if (responseParts[1] == "DENIED")
                     {
                         if (responseParts[2] == "LOGIN")
@@ -327,19 +453,19 @@ namespace WarArenaClient
                         request.Append("MOVE RIGHT");
                         break;
                     case ConsoleKey.C:
-                        Handler.Write("message: ", gameBoard.GetLength(0), _players.Count + _chattMessages.Count);
+                        Handler.Write("message: ", gameBoard.GetLength(0), _players.Count + _chatMessages.Count);
                         string message = Handler.ReadString();
                         request.Append($"MESSAGE {message}");
-                        Handler.ClearLine(gameBoard.GetLength(0), _players.Count + _chattMessages.Count);
+                        Handler.ClearLine(gameBoard.GetLength(0), _players.Count + _chatMessages.Count);
                         byte[] buffer = Encoding.UTF8.GetBytes(request.ToString());
-                        socket.Send(buffer);
+                        _socket.Send(buffer);
                         break;
                 }
             } while (info.Key == ConsoleKey.C);
             if (request.Length >= 14)
             {
                 byte[] bytes = Encoding.UTF8.GetBytes(request.ToString());
-                socket.Send(bytes);
+                _socket.Send(bytes);
                 return true;
             }
 
@@ -474,17 +600,17 @@ namespace WarArenaClient
 
         static void PrintChattMessages()
         {
-            for (int i = 0; i < _chattMessages.Count; i++)
+            for (int i = 0; i < _chatMessages.Count; i++)
             {
-                Handler.Write(_chattMessages[i], gameBoard.GetLength(0), _players.Count + i + 1);
+                Handler.Write(_chatMessages[i], gameBoard.GetLength(0), _players.Count + i);
             }
         }
 
         static void ClearChattMessages()
         {
-            for (int i = 0; i < _chattMessages.Count; i++)
+            for (int i = 0; i < _chatMessages.Count; i++)
             {
-                Handler.ClearLine(gameBoard.GetLength(0), _players.Count + i + 1);
+                Handler.ClearLine(gameBoard.GetLength(0), _players.Count + i);
             }
         }
     }

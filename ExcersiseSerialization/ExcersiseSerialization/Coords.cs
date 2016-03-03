@@ -5,10 +5,10 @@ using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace WarArena
+namespace ExcersiseSerialization
 {
     [DataContract]
-    public class Coords
+    class Coords
     {
         public Coords(int x, int y)
         {
