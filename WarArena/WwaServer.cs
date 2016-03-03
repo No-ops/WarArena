@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,13 +11,6 @@ using WarArena.Repositories;
 
 namespace WarArena
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Threading;
-    using System.IO;
-    using System.Net;
-    using System.Net.Sockets;
-    using System.Text;
 
     // War Arena Protocol (WAP/1.0):
 
@@ -53,12 +48,17 @@ namespace WarArena
         public const Int32 LISTENERBACKLOG = 100;
         public const Int32 BUFFERLENGTH = 500;
         const Int32 PORT = 8001;
+        const Int32 MASTERPORT = 8002;
         static IPAddress ipAddress = IPAddress.Any;
         static IPEndPoint localEndPoint = new IPEndPoint(ipAddress, PORT);
         public static UTF8Encoding encoding = new UTF8Encoding();
 
         static void Main()
         {
+            Console.Write("Enter server name: ");
+            var serverName = Console.ReadLine();
+            if(serverName.Contains(' '))
+                throw new Exception("Server name cannot contain spaces.");
             Console.Write("Use (T)ext or (J)son? ");
             ConsoleKey keyResponse;
             do
@@ -82,9 +82,19 @@ namespace WarArena
             listeningSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             listeningSocket.Bind(localEndPoint);
             listeningSocket.Listen(LISTENERBACKLOG);
-            Console.WriteLine($"WWAServer is listening on {listeningSocket.LocalEndPoint}");
+            Console.WriteLine("Informing master server...");
+            using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+            {
+                socket.Connect(IPAddress.Loopback, MASTERPORT);
+                NetHelpers.SendString($"WAMP/1.0 ADD {serverName} {PORT}", socket);
+                socket.Shutdown(SocketShutdown.Both);
+            }
+
+                Console.WriteLine($"WWAServer is listening on {listeningSocket.LocalEndPoint}. Press Q to quit.");
             while (true)
             {
+                if (Console.KeyAvailable && Console.ReadKey().Key == ConsoleKey.Q)
+                    break;
                 // Check for dead connections
                 for (int i = 0; i < unconfirmedConnections.Count; i++)
                 {
@@ -291,6 +301,8 @@ namespace WarArena
                     }
                 }
             }
+            // End while
+
             //}
             //catch (Exception exception)
             //{
@@ -301,6 +313,13 @@ namespace WarArena
             //{
             //    listeningSocket?.Close();
             //}
+
+            using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+            {
+                socket.Connect(IPAddress.Loopback, MASTERPORT);
+                NetHelpers.SendString($"WAMP/1.0 REMOVE {PORT}", socket);
+                socket.Shutdown(SocketShutdown.Both);
+            }
         }
 
         private static int GetFirstFreeId(List<Client> clients)

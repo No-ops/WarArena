@@ -73,6 +73,7 @@
   <ItemGroup>
     <Compile Include="Initiator.cs" />
     <Compile Include="MoveResultWrapper.cs" />
+    <Compile Include="NetHelpers.cs" />
     <Compile Include="Response.cs" />
     <Compile Include="Models\PlayerModel.cs" />
     <Compile Include="Models\WarArenaContext.cs" />

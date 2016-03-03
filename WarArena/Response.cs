@@ -21,13 +21,6 @@ namespace WarArena
         public int IdParam { get; set; }
         public Socket Socket { get; set; }
 
-        private static void SendString(string message, Socket socket)
-        {
-            var buffer = WWaServer.encoding.GetBytes(message);
-            //Console.WriteLine($"Send: {message}\nTo: {socket.RemoteEndPoint}");
-            socket.Send(buffer);
-        }
-
         public static void SendNewPlayerResponses(List<Client> clients, WorldMap world, int id, bool json)
         {
             var newPlayer = clients.Single(c => c.Player.PlayerId == id);
@@ -54,17 +47,17 @@ namespace WarArena
                         worldBuilder.Append(';');
                         data = worldBuilder.ToString();
                     }
-                    SendString(data, client.Socket);
+                    NetHelpers.SendString(data, client.Socket);
                 }
                 else
                 {
                     if (json)
                     {
-                        SendString($"WAP/1.0 NEWPLAYER {SerializationFunctions.SerializeObject(newPlayer)};", client.Socket);
+                        NetHelpers.SendString($"WAP/1.0 NEWPLAYER {SerializationFunctions.SerializeObject(newPlayer)};", client.Socket);
                     }
                     else
                     {
-                        SendString($"WAP/1.0 NEWPLAYER {newPlayer.Player.Name},{newPlayer.Player};", client.Socket);
+                        NetHelpers.SendString($"WAP/1.0 NEWPLAYER {newPlayer.Player.Name},{newPlayer.Player};", client.Socket);
                     }
                 }
             }
@@ -91,14 +84,14 @@ namespace WarArena
 
         public static void SendDeniedResponse(List<Client> clients, Socket socket, string stringParam)
         {
-            SendString($"WAP/1.0 DENIED {stringParam};", socket);
+            NetHelpers.SendString($"WAP/1.0 DENIED {stringParam};", socket);
         }
 
         public static void SendRemovePlayerResponse(List<Client> clients, int id)
         {
             foreach (var client in clients)
             {
-                SendString($"WAP/1.0 REMOVEPLAYER {id};", client.Socket);
+                NetHelpers.SendString($"WAP/1.0 REMOVEPLAYER {id};", client.Socket);
             }
         }
 
@@ -106,14 +99,14 @@ namespace WarArena
         {
             foreach (var client in clients)
             {
-                SendString($"WAP/1.0 UPDATETILE {stringParam};", client.Socket);
+                NetHelpers.SendString($"WAP/1.0 UPDATETILE {stringParam};", client.Socket);
             }
         }
 
         public static void SendYourTurn(List<Client> clients, int id)
         {
             var client = clients.Single(c => c.Player.PlayerId == id);
-            SendString($"WAP/1.0 YOURTURN {id};", client.Socket);
+            NetHelpers.SendString($"WAP/1.0 YOURTURN {id};", client.Socket);
 
         }
 
@@ -122,7 +115,7 @@ namespace WarArena
             var updatedPlayer = clients.Single(c => c.Player.PlayerId == id);
             foreach (var client in clients)
             {
-                SendString($"WAP/1.0 UPDATEPLAYER {updatedPlayer.Player};", client.Socket);
+                NetHelpers.SendString($"WAP/1.0 UPDATEPLAYER {updatedPlayer.Player};", client.Socket);
             }
         }
 
@@ -130,14 +123,14 @@ namespace WarArena
         {
             foreach (var client in clients)
             {
-                SendString($"WAP/1.0 MESSAGE {id} {message};", client.Socket);
+                NetHelpers.SendString($"WAP/1.0 MESSAGE {id} {message};", client.Socket);
             }
         }
 
         public static void SendWelcome(Socket socket, bool json)
         {
             var encoding = json ? "JSON" : "TEXT";
-            SendString($"WAP/1.0 WELCOME {encoding}", socket);
+            NetHelpers.SendString($"WAP/1.0 WELCOME {encoding}", socket);
         }
 
 
