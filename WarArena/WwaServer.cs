@@ -175,6 +175,7 @@ namespace WarArena
                         var buffer = new byte[BUFFERLENGTH];
                         var bytesReceived = client.Socket.Receive(buffer);
                         var command = encoding.GetString(buffer, 0, bytesReceived);
+                        //Console.WriteLine($"{command} <- {client.Socket.RemoteEndPoint}");
                         command = command.TrimEnd(';');
                         string[] parts = command.Split(' ');
                         if (parts.Length < 2 || parts[0] != "WAP/1.0")
