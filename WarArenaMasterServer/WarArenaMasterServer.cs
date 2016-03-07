@@ -116,7 +116,6 @@ namespace WarArenaMasterServer
                     {
                         var name = parts[2];
                         var port = parts[3];
-                        var format = parts[4];
                         var model = repository.GetByIPAndPort(ip, port);
 
                         if (model != null)
@@ -128,7 +127,6 @@ namespace WarArenaMasterServer
                                 Name = name,
                                 Ip = ip,
                                 Port = port,
-                                Format = format
                             };
                             repository.Add(model);
                             response = message + $"Server {name} ({ip}:{port}) added to list of active servers";
@@ -154,7 +152,7 @@ namespace WarArenaMasterServer
                         var servers = repository.GetActiveServers();
                         foreach (var server in servers)
                         {
-                            response += $"{server.Name},{server.Ip}:{server.Port},{server.Format}, ";
+                            response += $"{server.Name},{server.Ip}:{server.Port}, ";
                         }
                         response.Remove(response.Length - 2);
                     }
