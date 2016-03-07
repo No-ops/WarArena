@@ -133,7 +133,7 @@ namespace WarArena
         public static void SendWelcome(Socket socket, bool json)
         {
             var encoding = json ? "JSON" : "TEXT";
-            NetHelpers.SendString($"WAP/1.0 WELCOME {encoding}", socket);
+            NetHelpers.SendString($"WAP/1.0 WELCOME {encoding};", socket);
         }
 
 
