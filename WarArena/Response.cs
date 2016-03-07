@@ -53,7 +53,7 @@ namespace WarArena
                 {
                     if (json)
                     {
-                        NetHelpers.SendString($"WAP/1.0 NEWPLAYER {SerializationFunctions.SerializeObject(newPlayer)};", client.Socket);
+                        NetHelpers.SendString($"WAP/1.0 NEWPLAYER {SerializationFunctions.SerializeObject(newPlayer.Player)};", client.Socket);
                     }
                     else
                     {
