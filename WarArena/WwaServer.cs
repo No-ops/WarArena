@@ -288,7 +288,7 @@ namespace WarArena
                             break;
 
                         case Response.MessageType.UPDATEPLAYER:
-                            Response.SendUpdatePlayer(clients, response.IdParam, json);
+                            Response.SendUpdatePlayer(clients, response.IdParam);
                             break;
 
                         case Response.MessageType.MESSAGE:
