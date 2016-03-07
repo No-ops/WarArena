@@ -110,12 +110,15 @@ namespace WarArena
 
         }
 
-        public static void SendUpdatePlayer(List<Client> clients, int id)
+        public static void SendUpdatePlayer(List<Client> clients, int id, bool json)
         {
             var updatedPlayer = clients.Single(c => c.Player.PlayerId == id);
             foreach (var client in clients)
             {
-                NetHelpers.SendString($"WAP/1.0 UPDATEPLAYER {updatedPlayer.Player};", client.Socket);
+                if (json)
+                    NetHelpers.SendString($"WAP/1.0 UPDATEPLAYER {SerializationFunctions.SerializeObject(updatedPlayer.Player)};", client.Socket);
+                else
+                    NetHelpers.SendString($"WAP/1.0 UPDATEPLAYER {updatedPlayer.Player};", client.Socket);
             }
         }
 
