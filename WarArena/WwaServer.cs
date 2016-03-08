@@ -144,7 +144,7 @@ namespace WarArena
                                     player = new Player(GetFirstFreeId(clients), name, 100, 10, 0, world.GetRandomFreeCoords(clients));
                                     model = Initiator.Mapper.Map<PlayerModel>(player);
                                     model.Password = password;
-                                    model.LoggedInDate = DateTime.Now;
+                                    model.LastLogin = DateTime.Now;
                                     _repository.Add(model);
                                     responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.NEWPLAYER, IdParam = player.PlayerId });
                                     clients.Add(new Client { Player = player, Socket = connection });
@@ -158,7 +158,7 @@ namespace WarArena
                                     if (model.Password == password)
                                     {
                                         responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.WELCOME, Socket = connection });
-                                        model.LoggedInDate = DateTime.Now;
+                                        model.LastLogin = DateTime.Now;
                                         _repository.Update(model);
                                         player = Initiator.Mapper.Map<Player>(model);
                                         player.Coordinates = world.GetRandomFreeCoords(clients);
