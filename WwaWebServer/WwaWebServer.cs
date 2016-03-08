@@ -4,6 +4,8 @@ using System.Linq;
 using System.ServiceModel;
 using System.Text;
 using System.Threading.Tasks;
+using WarArenaDbLibrary.Models;
+using WarArenaDbLibrary.Repositories;
 
 namespace WwaWebServer
 {
@@ -13,14 +15,17 @@ namespace WwaWebServer
         public Statistics GetStats()
         {
             //hämta statistik från reposiotryn.
-            IPlayerRepository repository = new PlayerRepository();
+            IPlayersRepository repository = new DbPlayersRepository();
             PlayerModel goldPlayer = repository.GetPlayerWithMostGold();
             PlayerModel healthPlayer = repository.GetPlayerWithMostHealth();
             int numberOfPlayers = repository.GetTotalNumberOfPlayers();
             PlayerModel lastPlayer = repository.GetLastCreatedPlayer();
             return new Statistics
             {
-                
+                LastPlayerLoggedIn = lastPlayer.Name,
+                PlayerWithMostGold = goldPlayer.Name,
+                PlayerWithMostHealth = healthPlayer.Name,
+                TotalNumberOfPlayers = numberOfPlayers
             };
         }
     }
