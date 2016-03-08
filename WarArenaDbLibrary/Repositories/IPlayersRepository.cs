@@ -10,6 +10,6 @@ namespace WarArenaDbLibrary.Repositories
         PlayerModel GetPlayerWithMostGold();
         PlayerModel GetPlayerWithMostHealth();
         int GetTotalNumberOfPlayers();
-        PlayerModel GetLastCreatedPlayer();
+        PlayerModel GetLastLoggedInPlayer();
     }
 }

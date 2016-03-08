@@ -49,7 +49,7 @@ namespace WarArenaDbLibrary.Repositories
 
         public PlayerModel GetLastLoggedInPlayer()
         {
-            return context.Players.OrderByDescending(p => p.LoggedInDate).First();
+            return context.Players.OrderByDescending(p => p.LastLogin).First();
         }
     }
 }
