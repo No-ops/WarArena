@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ReferenceGroup xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" ID="98ba3a7f-5def-4cb6-9927-5c876ab2612f" xmlns="urn:schemas-microsoft-com:xml-wcfservicemap">
+  <ClientOptions>
+    <GenerateAsynchronousMethods>false</GenerateAsynchronousMethods>
+    <GenerateTaskBasedAsynchronousMethod>true</GenerateTaskBasedAsynchronousMethod>
+    <EnableDataBinding>true</EnableDataBinding>
+    <ExcludedTypes />
+    <ImportXmlTypes>false</ImportXmlTypes>
+    <GenerateInternalTypes>false</GenerateInternalTypes>
+    <GenerateMessageContracts>false</GenerateMessageContracts>
+    <NamespaceMappings />
+    <CollectionMappings />
+    <GenerateSerializableTypes>true</GenerateSerializableTypes>
+    <Serializer>Auto</Serializer>
+    <UseSerializerForFaults>true</UseSerializerForFaults>
+    <ReferenceAllAssemblies>true</ReferenceAllAssemblies>
+    <ReferencedAssemblies />
+    <ReferencedDataContractTypes />
+    <ServiceContractMappings />
+  </ClientOptions>
+  <MetadataSources>
+    <MetadataSource Address="http://localhost:5387/WwaWebServer.svc" Protocol="http" SourceId="1" />
+  </MetadataSources>
+  <Metadata>
+    <MetadataFile FileName="WwaWebServer.xsd" MetadataType="Schema" ID="dd201cb3-7b76-4f5a-962c-19b30a0180e1" SourceId="1" SourceUrl="http://localhost:5387/WwaWebServer.svc?xsd=xsd2" />
+    <MetadataFile FileName="WwaWebServer.disco" MetadataType="Disco" ID="82443615-4cdd-4600-923e-96a64b5d029e" SourceId="1" SourceUrl="http://localhost:5387/WwaWebServer.svc?disco" />
+    <MetadataFile FileName="WwaWebServer1.xsd" MetadataType="Schema" ID="02974ff7-8576-43b2-819a-d56f98499c20" SourceId="1" SourceUrl="http://localhost:5387/WwaWebServer.svc?xsd=xsd0" />
+    <MetadataFile FileName="WwaWebServer2.xsd" MetadataType="Schema" ID="0ea27767-e030-431f-8ba9-bfe454bc035f" SourceId="1" SourceUrl="http://localhost:5387/WwaWebServer.svc?xsd=xsd1" />
+    <MetadataFile FileName="WwaWebServer.wsdl" MetadataType="Wsdl" ID="27e033f4-58d4-4ddb-a939-83b827d3b1ff" SourceId="1" SourceUrl="http://localhost:5387/WwaWebServer.svc?wsdl" />
+  </Metadata>
+  <Extensions>
+    <ExtensionFile FileName="configuration91.svcinfo" Name="configuration91.svcinfo" />
+    <ExtensionFile FileName="configuration.svcinfo" Name="configuration.svcinfo" />
+  </Extensions>
+</ReferenceGroup>
