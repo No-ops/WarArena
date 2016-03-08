@@ -46,7 +46,7 @@ namespace WwaLibrary.World
         public bool HasGold => Gold > 0;
         [DataMember]
         public int Health { get; set; }
-        public bool HasHealth => Gold > 0;
+        public bool HasHealth => Health > 0;
 
         public override string ToString()
         {
