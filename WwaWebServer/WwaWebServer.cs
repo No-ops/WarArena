@@ -12,7 +12,16 @@ namespace WwaWebServer
     {
         public Statistics GetStats()
         {
-            return new Statistics();
+            //hämta statistik från reposiotryn.
+            IPlayerRepository repository = new PlayerRepository();
+            PlayerModel goldPlayer = repository.GetPlayerWithMostGold();
+            PlayerModel healthPlayer = repository.GetPlayerWithMostHealth();
+            int numberOfPlayers = repository.GetTotalNumberOfPlayers();
+            PlayerModel lastPlayer = repository.GetLastCreatedPlayer();
+            return new Statistics
+            {
+                
+            };
         }
     }
 }
