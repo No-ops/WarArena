@@ -31,5 +31,25 @@ namespace WarArenaDbLibrary.Repositories
             entry.Property(p => p.Health).IsModified = true;
             context.SaveChanges();
         }
+
+        public PlayerModel GetPlayerWithMostGold()
+        {
+            return context.Players.OrderByDescending(p => p.Gold).First();
+        }
+
+        public PlayerModel GetPlayerWithMostHealth()
+        {
+            return context.Players.OrderByDescending(p => p.Health).First();
+        }
+
+        public int GetTotalNumberOfPlayers()
+        {
+            return context.Players.Count();
+        }
+
+        public PlayerModel GetLastLoggedInPlayer()
+        {
+            return context.Players.OrderByDescending(p => p.LoggedInDate).First();
+        }
     }
 }

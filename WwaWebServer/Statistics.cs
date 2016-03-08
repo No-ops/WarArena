@@ -15,7 +15,7 @@ namespace WwaWebServer
         [DataMember]
         public string PlayerWithMostHealth { get; set; }
         [DataMember]
-        public string TotalNumberOfPlayers { get; set; }
+        public int TotalNumberOfPlayers { get; set; }
         [DataMember]
         public string LastPlayerLoggedIn { get; set; }
     }
