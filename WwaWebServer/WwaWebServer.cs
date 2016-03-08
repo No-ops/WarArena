@@ -19,7 +19,7 @@ namespace WwaWebServer
             PlayerModel goldPlayer = repository.GetPlayerWithMostGold();
             PlayerModel healthPlayer = repository.GetPlayerWithMostHealth();
             int numberOfPlayers = repository.GetTotalNumberOfPlayers();
-            PlayerModel lastPlayer = repository.GetLastCreatedPlayer();
+            PlayerModel lastPlayer = repository.GetLastLoggedInPlayer();
             return new Statistics
             {
                 LastPlayerLoggedIn = lastPlayer.Name,
