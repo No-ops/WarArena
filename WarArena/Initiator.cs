@@ -5,7 +5,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
-using WarArena.Models;
+using WarArenaDbLibrary.Models;
 
 namespace WarArena
 {

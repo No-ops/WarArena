@@ -6,9 +6,8 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using WarArena.Models;
-using WarArena.Repositories;
-
+using WarArenaDbLibrary.Models;
+using WarArenaDbLibrary.Repositories;
 namespace WarArena
 {
 
@@ -226,6 +225,7 @@ namespace WarArena
                                         case MoveResult.Potion:
                                             responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.UPDATETILE, StringParam = world.GameMap[client.Player.Coordinates.X, client.Player.Coordinates.Y].ToString() });
                                             responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.UPDATEPLAYER, IdParam = client.Player.PlayerId });
+                                            UpdateDbStats(_repository, client.Player);
                                             break;
                                         case MoveResult.Player:
                                             if (result.Player.Health <= 0)
@@ -237,6 +237,7 @@ namespace WarArena
                                                 result.Player.IsDead = false;
                                             }
                                             responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.UPDATEPLAYER, IdParam = result.Player.PlayerId });
+                                            UpdateDbStats(_repository, result.Player);
                                             break;
                                     }
                                     if (result.MoveResult != MoveResult.Fail)
@@ -320,6 +321,12 @@ namespace WarArena
                 NetHelpers.SendString($"WAMP/1.0 REMOVE {PORT}", socket);
                 socket.Shutdown(SocketShutdown.Both);
             }
+        }
+
+        private static void UpdateDbStats(IPlayersRepository repository, Player player)
+        {
+            var model = Initiator.Mapper.Map<PlayerModel>(player);
+            repository.Update(model);
         }
 
         private static int GetFirstFreeId(List<Client> clients)

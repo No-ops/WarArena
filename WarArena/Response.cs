@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using WarArenaDbLibrary.Repositories;
 using WwaLibrary;
 using WwaLibrary.Utilities;
 using WwaLibrary.World;
@@ -112,13 +113,14 @@ namespace WarArena
 
         public static void SendUpdatePlayer(List<Client> clients, int id, bool json)
         {
-            var updatedPlayer = clients.Single(c => c.Player.PlayerId == id);
+            var updatedPlayer = clients.Single(c => c.Player.PlayerId == id).Player;
+
             foreach (var client in clients)
             {
                 if (json)
-                    NetHelpers.SendString($"WAP/1.0 UPDATEPLAYER {SerializationFunctions.SerializeObject(updatedPlayer.Player)};", client.Socket);
+                    NetHelpers.SendString($"WAP/1.0 UPDATEPLAYER {SerializationFunctions.SerializeObject(updatedPlayer)};", client.Socket);
                 else
-                    NetHelpers.SendString($"WAP/1.0 UPDATEPLAYER {updatedPlayer.Player};", client.Socket);
+                    NetHelpers.SendString($"WAP/1.0 UPDATEPLAYER {updatedPlayer};", client.Socket);
             }
         }
 

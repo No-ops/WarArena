@@ -1,20 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data.Entity;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using WarArena.Models;
+﻿using System.Linq;
+using WarArenaDbLibrary.Models;
 
-namespace WarArena.Repositories
+namespace WarArenaDbLibrary.Repositories
 {
-    class DbPlayersRepository : IPlayersRepository
+    public class DbPlayersRepository : IPlayersRepository
     {
         WarArenaContext context = new WarArenaContext();
 
         public PlayerModel GetByName(string name)
         {
             return context.Players.SingleOrDefault(p => p.Name == name);
+        }
+
+        public PlayerModel GetById(int id)
+        {
+            return context.Players.Find(id);
         }
 
         public void Add(PlayerModel player)

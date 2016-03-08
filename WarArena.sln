@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WarArenaClient", "WarArenaC
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WarArenaMasterServer", "WarArenaMasterServer\WarArenaMasterServer.csproj", "{2175D34C-6A8D-42E4-8ACB-4DE6A4CA43FA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WarArenaDbLibrary", "WarArenaDbLibrary\WarArenaDbLibrary.csproj", "{03D6F8F9-5693-42FC-8EFB-9EA3FE45066E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{2175D34C-6A8D-42E4-8ACB-4DE6A4CA43FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2175D34C-6A8D-42E4-8ACB-4DE6A4CA43FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2175D34C-6A8D-42E4-8ACB-4DE6A4CA43FA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{03D6F8F9-5693-42FC-8EFB-9EA3FE45066E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{03D6F8F9-5693-42FC-8EFB-9EA3FE45066E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{03D6F8F9-5693-42FC-8EFB-9EA3FE45066E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{03D6F8F9-5693-42FC-8EFB-9EA3FE45066E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
