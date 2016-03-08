@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Data.Entity;
+using System.Linq;
 using WarArenaDbLibrary.Models;
 
 namespace WarArenaDbLibrary.Repositories
@@ -26,9 +27,7 @@ namespace WarArenaDbLibrary.Repositories
         public void Update(PlayerModel player)
         {
             context.Players.Attach(player);
-            var entry = context.Entry(player);
-            entry.Property(p => p.Gold).IsModified = true;
-            entry.Property(p => p.Health).IsModified = true;
+            context.Entry(player).State = EntityState.Modified;
             context.SaveChanges();
         }
 
