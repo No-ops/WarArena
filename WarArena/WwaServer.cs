@@ -161,7 +161,12 @@ namespace WarArena
                                 }
                                 else //Finns i databasen
                                 {
-                                    if (model.Password == password)
+                                    if (clients.Select(c => c.Player.Name).Contains(model.Name))
+                                    {
+                                        Console.WriteLine($"{connection.RemoteEndPoint} tried to log in with {model.Name} already in game");
+                                        responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.DENIED, Socket = connection, StringParam = "LOGIN Player already in game" });
+                                    }
+                                    else if (model.Password == password)
                                     {
                                         responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.WELCOME, Socket = connection });
                                         model.LastLogin = DateTime.Now;
