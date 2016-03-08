@@ -6,8 +6,11 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using WarArena.Utilities;
 using WarArenaDbLibrary.Models;
 using WarArenaDbLibrary.Repositories;
+using WwaLibrary.Utilities;
+
 namespace WarArena
 {
 
@@ -114,7 +117,10 @@ namespace WarArena
                         clients[i].Socket.Close();
                         clients.RemoveAt(i--);
                         if (clients.Count <= currentPlayerIndex)
+                        {
                             currentPlayerIndex = 0;
+                            UpdateMap(world, clients, responseQueue, json);
+                        }
                     }
                 }
 
@@ -226,7 +232,7 @@ namespace WarArena
                                             break;
                                         case MoveResult.Gold:
                                         case MoveResult.Potion:
-                                            responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.UPDATETILE, StringParam = world.GameMap[client.Player.Coordinates.X, client.Player.Coordinates.Y].ToString() });
+                                            responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.UPDATETILE, StringParam = EncodeTile(world, client.Player.Coordinates, json) });
                                             responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.UPDATEPLAYER, IdParam = client.Player.PlayerId });
                                             UpdateDbStats(_repository, client.Player);
                                             break;
@@ -246,7 +252,10 @@ namespace WarArena
                                     if (result.MoveResult != MoveResult.Fail)
                                     {
                                         if (++currentPlayerIndex >= clients.Count)
+                                        {
                                             currentPlayerIndex = 0;
+                                            UpdateMap(world, clients, responseQueue, json);
+                                        }
                                         responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.YOURTURN, IdParam = clients[currentPlayerIndex].Player.PlayerId });
                                     }
                                 }
@@ -324,6 +333,28 @@ namespace WarArena
                 NetHelpers.SendString($"WAMP/1.0 REMOVE {PORT}", socket);
                 socket.Shutdown(SocketShutdown.Both);
             }
+        }
+
+        private static void UpdateMap(WorldMap world, List<Client> clients, Queue<Response> responseQueue, bool json)
+        {
+            if (RandomizationFunctions.Chance(15))
+            {
+                var coords = world.PlaceGold(clients);
+
+                responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.UPDATETILE, StringParam = EncodeTile(world, coords, json)});
+
+            }
+
+            if (RandomizationFunctions.Chance(95))
+            {
+                var coords = world.CreatePotion(clients);
+                responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.UPDATETILE, StringParam = EncodeTile(world, coords, json) });
+            }
+        }
+
+        private static string EncodeTile(WorldMap world, Coords coords, bool json)
+        {
+            return json ? SerializationFunctions.SerializeObject(world.GameMap[coords.X, coords.Y]) : world.GameMap[coords.X, coords.Y].ToString();
         }
 
         private static void UpdateDbStats(IPlayersRepository repository, Player player)

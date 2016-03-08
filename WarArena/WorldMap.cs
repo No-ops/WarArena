@@ -22,23 +22,19 @@ namespace WarArena
         {
             GameMap = MapCreator.CreateEmptyMap();
         }
-        public void PlaceGold(IEnumerable<Client> clients)
+        public Coords PlaceGold(IEnumerable<Client> clients)
         {
-            if (RandomizationFunctions.Chance(30))
-            {
-                var coords = GetRandomFreeCoords(clients);
-                GameMap[coords.X, coords.Y].Gold = RandomizationFunctions.GetRandomNumber(10, 50);
-            }
+            var coords = GetRandomFreeCoords(clients);
+            GameMap[coords.X, coords.Y].Gold = RandomizationFunctions.GetRandomNumber(10, 50);
+            return coords;
         }
 
-        public void CreatePotion(IEnumerable<Client> clients)
+        public Coords CreatePotion(IEnumerable<Client> clients)
         {
-            if (RandomizationFunctions.Chance(30))
-            {
-                var coords = GetRandomFreeCoords(clients);
-                var health = RandomizationFunctions.GetRandomNumber(1, 100);
-                GameMap[coords.X, coords.Y].Health = health;
-            }
+            var coords = GetRandomFreeCoords(clients);
+            var health = RandomizationFunctions.GetRandomNumber(1, 100);
+            GameMap[coords.X, coords.Y].Health = health;
+            return coords;
         }
 
         public Coords GetRandomFreeCoords(IEnumerable<Client> clients)
@@ -130,7 +126,7 @@ namespace WarArena
         private MoveResult GetTileContent(int x, int y, IEnumerable<Client> clients, out Player enemyPlayer)
         {
             enemyPlayer = null;
-            if (x >= GameMap.GetLength(0) || y >= GameMap.GetLength(1) || GameMap[x,y].IsCaveWall)
+            if (x >= GameMap.GetLength(0) || y >= GameMap.GetLength(1) || GameMap[x, y].IsCaveWall)
                 return MoveResult.Fail;
             if (GameMap[x, y].HasGold)
                 return MoveResult.Gold;
