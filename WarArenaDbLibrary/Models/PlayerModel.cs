@@ -13,6 +13,6 @@ namespace WarArenaDbLibrary.Models
         public int Attack { get; set; }
         public int Gold { get; set; }
         public int Health { get; set; }
-        public DateTime LoggedInDate { get; set; }
+        public DateTime LastLogin { get; set; }
     }
 }
