@@ -35,8 +35,8 @@ namespace WarArenaClient
         //const String IPADDRESS = "10.56.5.232";
         const Int32 MASTERPORT = 8002;
         const Int32 PORT = 8001;
-        static readonly IPAddress IpAddress = IPAddress.Parse(IPADDRESS);
-        static readonly IPEndPoint MasterEndPoint = new IPEndPoint(IpAddress, MASTERPORT);
+        static IPAddress IpAddress = IPAddress.Parse(IPADDRESS);
+        static IPEndPoint MasterEndPoint = new IPEndPoint(IpAddress, MASTERPORT);
         static readonly IPEndPoint RemoteEndPoint = new IPEndPoint(IpAddress, PORT);
         static UTF8Encoding _encoding = new UTF8Encoding();
         private static Socket _masterSocket = null;
@@ -54,6 +54,13 @@ namespace WarArenaClient
         static void ConnectToServer()
         {
             Handler.WriteLine("Welcome to WarArenaClient!");
+            Console.Write("Enter master server ip to connect to (empty for localhost): ");
+            var ipString = Console.ReadLine();
+            if (!string.IsNullOrEmpty(ipString))
+            {
+                IpAddress = IPAddress.Parse(ipString);
+                MasterEndPoint = new IPEndPoint(IpAddress, MASTERPORT);
+            }
             _masterSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             _masterSocket.Connect(MasterEndPoint);
             Handler.WriteLine("fetching info...");
