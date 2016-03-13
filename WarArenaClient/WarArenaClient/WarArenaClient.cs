@@ -113,17 +113,6 @@ namespace WarArenaClient
             string request = $"WAP/1.0 LOGIN {name} {password}";
             byte[] bytes = Encoding.UTF8.GetBytes(request);
             _socket.Send(bytes);
-            //bytes = new byte[BUFFERLENGTH];
-            //socket.Receive(bytes);
-            //string response = Encoding.UTF8.GetString(bytes);
-            //string[] responseParts = response.Split(' ');
-            //if (responseParts[0] == "WAP/1.0" && responseParts[1] == "DENIED")
-            //{
-            //    Console.WriteLine("Wrong password");
-            //    Console.ReadKey();
-            //    return false;
-            //}
-            //return true;
         }
 
         public static LoginData Login()
@@ -501,35 +490,6 @@ namespace WarArenaClient
 
         static void PrintHealthBar(int playerId, int health)
         {
-            //Handler.ChangeTextColor("Black");
-            //Handler.SetCursorPosition(gameBoard.GetLength(0), playerId);
-
-            //for (int i = 0; i < 10; i++)
-            //{
-            //    Handler.Write("");
-            //}
-
-            if (playerId == 1)
-            {
-                Handler.ChangeTextColor("Red");
-            }
-            else if (playerId == 2)
-            {
-                Handler.ChangeTextColor("Blue");
-            }
-            else if (playerId == 3)
-            {
-                Handler.ChangeTextColor("Green");
-            }
-            else if (playerId == 4)
-            {
-                Handler.ChangeTextColor("Yellow");
-            }
-            else if (playerId == 5)
-            {
-                Handler.ChangeTextColor("Orange");
-            }
-
             Handler.SetCursorPosition(gameBoard.GetLength(0), playerId);
 
             for (int i = 0; i < health / 10; i++)
