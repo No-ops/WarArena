@@ -73,13 +73,14 @@ namespace WarArenaMasterServer
                 listeningSocket.Bind(localEndPoint);
                 listeningSocket.Listen(LISTENERBACKLOG);
                 Console.WriteLine("War Arena Master Server started.");
+                Console.WriteLine($"Listening on {listeningSocket.LocalEndPoint}");
                 while (true)
                 {
-                    Console.WriteLine($"Listening on {listeningSocket.LocalEndPoint}");
                     var newConnection = listeningSocket.Accept();
+                    Console.WriteLine($"New connection from {newConnection.RemoteEndPoint}");
                     ParameterizedThreadStart pts = new ParameterizedThreadStart(ConnectionHandler);
                     Thread thread = new Thread(pts);
-                    thread.Start(newConnection);  
+                    thread.Start(newConnection);
                 }
             }
             catch (Exception exception)
@@ -112,14 +113,17 @@ namespace WarArenaMasterServer
 
             switch (parts[1])
             {
-                case "ADD" :
+                case "ADD":
                     {
                         var name = parts[2];
                         var port = parts[3];
                         var model = repository.GetByIPAndPort(ip, port);
 
                         if (model != null)
+                        {
+                            Console.WriteLine($"{connection.RemoteEndPoint} tried to add {name} on port {port} but it already exists");
                             response = message + $"Server {name} ({ip}:{port}) already exists in list of active servers";
+                        }
                         else
                         {
                             model = new ServerModel
@@ -130,19 +134,24 @@ namespace WarArenaMasterServer
                             };
                             repository.Add(model);
                             response = message + $"Server {name} ({ip}:{port}) added to list of active servers";
+                            Console.WriteLine($"Added server {name} on {ip}:{port}");
                         }
                     }
                     break;
-                case "REMOVE" :
-                    { 
+                case "REMOVE":
+                    {
                         var port = parts[2];
                         var model = repository.GetByIPAndPort(ip, port);
                         if (model == null)
+                        {
                             response = message + $"No server with address {ip}:{port} listed as active server";
+                            Console.WriteLine($"{connection.RemoteEndPoint} tried to remove server from port {port} but no such server exists");
+                        }
                         else
                         {
                             repository.Remove(model);
                             response = message + $"Server {model.Name} ({ip}:{port}) removed from list of active servers";
+                            Console.WriteLine($"Removed server {model.Name} ({ip}:{port})");
                         }
                     }
                     break;
@@ -155,11 +164,13 @@ namespace WarArenaMasterServer
                             response += $"{server.Name},{server.Ip}:{server.Port}, ";
                         }
                         response.Remove(response.Length - 2);
+                        Console.WriteLine($"Sent serverlist to {connection.RemoteEndPoint}");
                     }
                     break;
                 default:
                     response = errorMessage + $"Unknown command {parts[1]}";
-                    break; 
+                    Console.WriteLine($"{connection.RemoteEndPoint} sent unknown command ({parts[1]})");
+                    break;
             }
             bufferOut = encoding.GetBytes(response);
             connection.Send(bufferOut);
@@ -167,4 +178,3 @@ namespace WarArenaMasterServer
         }
     }
 }
- 
