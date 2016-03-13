@@ -37,8 +37,6 @@ namespace WarArenaClient
         const Int32 PORT = 8001;
         static IPAddress IpAddress = IPAddress.Parse(IPADDRESS);
         static IPEndPoint MasterEndPoint = new IPEndPoint(IpAddress, MASTERPORT);
-        static readonly IPEndPoint RemoteEndPoint = new IPEndPoint(IpAddress, PORT);
-        static UTF8Encoding _encoding = new UTF8Encoding();
         private static Socket _masterSocket = null;
         static Socket _socket = null;
 
