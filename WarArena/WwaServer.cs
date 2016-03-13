@@ -22,6 +22,8 @@ namespace WarArena
 
     // Request WAP/1.0 LOGIN <username> <password>
 
+    // Respons WAP/1.0 WELCOME <protocol> där protocol är TEXT eller JSON
+
     // Respons WAP/1.0 SENDSTATE Pl,Name,Id,X,Y,h,g P,X,Y,h G,X,Y,g
     // där Pl är spelare, Name är namn, Id är PlayerId, h är health, G är guld och g är mängden guld,
     // och P är potion.
@@ -44,6 +46,8 @@ namespace WarArena
 
     //Request WAP/1.0 MESSAGE ____ där ____ är meddelandet.
 
+    // Respons WAP/1.0 MESSAGE <id> <message>
+
     static class WWaServer
     {
         static IPlayersRepository _repository = new DbPlayersRepository();
@@ -59,7 +63,7 @@ namespace WarArena
         {
             Console.Write("Enter server name: ");
             var serverName = Console.ReadLine();
-            if(serverName.Contains(' '))
+            if (serverName.Contains(' '))
                 throw new Exception("Server name cannot contain spaces.");
             Console.Write("Use (T)ext or (J)son? ");
             ConsoleKey keyResponse;
@@ -92,7 +96,7 @@ namespace WarArena
                 socket.Shutdown(SocketShutdown.Both);
             }
 
-                Console.WriteLine($"WWAServer is listening on {listeningSocket.LocalEndPoint}. Press Q to quit.");
+            Console.WriteLine($"WWAServer is listening on {listeningSocket.LocalEndPoint}. Press Q to quit.");
             while (true)
             {
                 if (Console.KeyAvailable && Console.ReadKey().Key == ConsoleKey.Q)
@@ -146,7 +150,7 @@ namespace WarArena
                                 Player player = null;
                                 if (model == null) //Finns inte i databasen
                                 {
-                                    responseQueue.Enqueue(new Response {ResponseType = Response.MessageType.WELCOME, Socket = connection});
+                                    responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.WELCOME, Socket = connection });
                                     player = new Player(GetFirstFreeId(clients), name, 100, 10, 0, world.GetRandomFreeCoords(clients));
                                     model = Initiator.Mapper.Map<PlayerModel>(player);
                                     model.Password = password;
@@ -346,7 +350,7 @@ namespace WarArena
             {
                 var coords = world.PlaceGold(clients);
 
-                responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.UPDATETILE, StringParam = EncodeTile(world, coords, json)});
+                responseQueue.Enqueue(new Response { ResponseType = Response.MessageType.UPDATETILE, StringParam = EncodeTile(world, coords, json) });
 
             }
 
